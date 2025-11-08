@@ -1,15 +1,12 @@
 import Phaser from "phaser";
-import { baseGameConfig } from "../../config/gameConfig";
+import { IMAGE_KEYS } from "../../assets/assetManifest";
 
 /**
  * Core-Player-Modul (Stub, Phase 0)
  *
  * Ziele:
  * - Kapselt Player-Erstellung von der Scene-Implementierung
- * - Ermöglicht später:
- *   - States (Idle, Run, Jump, Wall-Jump, Fall)
- *   - Input-Abstraktion (Keyboard/Gamepad/Touch)
- *   - Animations- und Physik-Tuning zentral zu steuern
+ * - Ermöglicht spätere Erweiterungen wie States & Animations
  */
 
 export interface PlayerOptions {
@@ -22,30 +19,44 @@ export function createPlayerStub(
   x: number,
   y: number
 ): Phaser.Types.Physics.Arcade.SpriteWithDynamicBody {
-  const player = scene.physics.add
-    .sprite(x, y, undefined as unknown as string)
-    .setDisplaySize(24, 32);
-
-  player.setTintFill(0xffffff);
+  const displaySize = { width: 44, height: 44 };
+  const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerPrototype);
+  player.setDisplaySize(displaySize.width, displaySize.height);
   player.setCollideWorldBounds(true);
-  player.setBounce(0);
-  player.setDragX(800);
+  player.setBounce(0.05);
+  player.setDragX(900);
   player.setMaxVelocity(260, 900);
-  player.body.setSize(16, 28).setOffset(4, 4);
+  player.body
+    .setSize(displaySize.width * 0.6, displaySize.height * 0.8)
+    .setOffset(displaySize.width * 0.2, displaySize.height * 0.1);
 
-  // Platzhalterfarbe via Graphics-Texture für klaren visuelle Marker
-  const gfxKey = "__player_placeholder";
-  if (!scene.textures.exists(gfxKey)) {
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(0, 0, 24, 32, 4);
-    g.generateTexture(gfxKey, 24, 32);
-    g.destroy();
-  }
-  player.setTexture(gfxKey);
-  player.setTintFill(
-    Phaser.Display.Color.HexStringToColor(baseGameConfig.colors.player).color
-  );
+  player.setDepth(5);
+
+  const lightTrail = scene.add
+    .image(x, y + displaySize.height * 0.1, IMAGE_KEYS.propLightBeam)
+    .setBlendMode(Phaser.BlendModes.ADD)
+    .setAlpha(0.22)
+    .setDisplaySize(displaySize.width * 0.9, displaySize.height * 2.1)
+    .setDepth(1);
+
+  scene.tweens.add({
+    targets: lightTrail,
+    alpha: { from: 0.12, to: 0.3 },
+    duration: 700,
+    yoyo: true,
+    repeat: -1,
+  });
+
+  const syncTrail = () => {
+    lightTrail.x = player.x;
+    lightTrail.y = player.y + displaySize.height * 0.1;
+  };
+  scene.events.on(Phaser.Scenes.Events.UPDATE, syncTrail);
+
+  player.on(Phaser.GameObjects.Events.DESTROY, () => {
+    scene.events.off(Phaser.Scenes.Events.UPDATE, syncTrail);
+    lightTrail.destroy();
+  });
 
   return player;
 }

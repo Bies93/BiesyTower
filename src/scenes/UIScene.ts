@@ -34,7 +34,11 @@ export class UIScene extends Phaser.Scene {
     this.heightText.setOrigin(0, 0);
 
     // Listen to events from GameScene
-    this.game.events.on('heightUpdate', this.onHeightUpdate, this);
+    this.game.events.on("heightUpdate", this.onHeightUpdate, this);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off("heightUpdate", this.onHeightUpdate, this);
+    });
   }
 
   private onHeightUpdate(height: number): void {
@@ -45,7 +49,7 @@ export class UIScene extends Phaser.Scene {
     this.scoreText.setText(`Score: ${this.currentScore}`);
 
     // Update DOM element if it exists
-    const scoreElement = document.getElementById('score-display');
+    const scoreElement = document.getElementById("score-display");
     if (scoreElement) {
       scoreElement.textContent = this.currentScore.toString();
     }
