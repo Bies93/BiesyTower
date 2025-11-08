@@ -1,18 +1,25 @@
-/* Grundlegendes Styling für die Einbettung des Canvas.
- * Das eigentliche visuelle Design des Spiels passiert in Phaser.
+/* Enhanced Styling für die Einbettung des Canvas.
+ * Modernes Ice-Theme mit Glassmorphism-Effekten.
  */
 
 :root {
-  --icy-bg-top: #101826;
-  --icy-bg-bottom: #050814;
+  --icy-bg-top: #0f1a2e;
+  --icy-bg-bottom: #020610;
   --icy-accent: #4adeff;
   --icy-soft: #9acbff;
+  --icy-ice: #e9f3ff;
+  --icy-glass-bg: rgba(3, 13, 32, 0.92);
+  --icy-glass-border: rgba(74, 222, 255, 0.3);
   --icy-radius-lg: 18px;
   --icy-radius-md: 12px;
   --icy-radius-sm: 8px;
   --icy-shadow-strong: 0 24px 80px rgba(0, 0, 0, 0.55);
   --icy-shadow-glow: 0 0 40px rgba(120, 200, 255, 0.18);
-  --icy-glass: rgba(3, 13, 32, 0.92);
+  --icy-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --icy-text-primary: #e9f3ff;
+  --icy-text-secondary: #9acbff;
+  --icy-glow-intense: 0 0 60px rgba(74, 222, 255, 0.4);
+  --icy-glow-soft: 0 0 20px rgba(74, 222, 255, 0.2);
 }
 
 *,
@@ -27,10 +34,28 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at top, var(--icy-bg-top), var(--icy-bg-bottom) 70%);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e9f3ff;
+  background: radial-gradient(ellipse at center top, var(--icy-bg-top) 0%, var(--icy-bg-bottom) 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+  color: var(--icy-text-primary);
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(74, 222, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(154, 203, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(74, 222, 255, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 #app {
@@ -39,9 +64,123 @@ body {
   display: flex;
   align-items: stretch;
   justify-content: center;
+  position: relative;
 }
 
-/* Hinweis:
- * Das visuelle Wrapper-Layout ist bereits in index.html definiert,
- * hier könnten zusätzliche globale Styles ergänzt werden, wenn nötig.
- */
+#app::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle, rgba(74, 222, 255, 0.01) 0%, transparent 70%);
+  pointer-events: none;
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Enhanced Canvas Styling */
+canvas {
+  border-radius: var(--icy-radius-lg);
+  box-shadow:
+    var(--icy-shadow-strong),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg,
+    rgba(15, 26, 46, 0.95) 0%,
+    rgba(2, 6, 16, 0.95) 100%);
+}
+
+/* Loading Screen Enhancements */
+.loading-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, var(--icy-bg-top), var(--icy-bg-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.loading-text {
+  color: var(--icy-accent);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-shadow: var(--icy-glow-soft);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Score Display (DOM Integration) */
+#score-display {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--icy-glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--icy-glass-border);
+  border-radius: var(--icy-radius-md);
+  padding: 12px 20px;
+  color: var(--icy-text-primary);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-shadow: 0 0 10px rgba(74, 222, 255, 0.3);
+  box-shadow: var(--icy-shadow-soft);
+  z-index: 100;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+/* High DPI Display Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  #app::before {
+    background-size: 200% 200%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  #app::before {
+    animation: none;
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  #score-display {
+    top: 10px;
+    right: 10px;
+    padding: 8px 16px;
+    font-size: 1rem;
+  }
+  
+  canvas {
+    border-radius: 0;
+  }
+}
