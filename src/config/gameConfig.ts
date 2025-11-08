@@ -14,8 +14,10 @@ export const baseGameConfig = {
     player: "#ffffff",
   },
   physics: {
-    gravityY: 900,
-    jumpVelocity: 420,
+    gravityY: 860,
+    jumpVelocity: 480,
+    coyoteTimeMs: 130,
+    jumpBufferMs: 110,
   },
   rules: {
     deathMargin: 80,

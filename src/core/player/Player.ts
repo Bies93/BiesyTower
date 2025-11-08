@@ -20,7 +20,7 @@ export function createPlayerStub(
   y: number
 ): Phaser.Types.Physics.Arcade.SpriteWithDynamicBody {
   const displaySize = { width: 44, height: 44 };
-  const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerPrototype);
+  const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerIdleLanding);
   player.setDisplaySize(displaySize.width, displaySize.height);
   player.setCollideWorldBounds(true);
   player.setBounce(0.05);
@@ -31,6 +31,15 @@ export function createPlayerStub(
     .setOffset(displaySize.width * 0.2, displaySize.height * 0.1);
 
   player.setDepth(5);
+
+  const poseTextures = {
+    idle: IMAGE_KEYS.playerIdleLanding,
+    left: IMAGE_KEYS.playerJumpLeft,
+    right: IMAGE_KEYS.playerJumpRight,
+  } as const;
+  type PlayerPose = keyof typeof poseTextures;
+  let activePose: PlayerPose = "idle";
+  let lastAirFacing: Exclude<PlayerPose, "idle"> = "right";
 
   const lightTrail = scene.add
     .image(x, y + displaySize.height * 0.1, IMAGE_KEYS.propLightBeam)
@@ -51,10 +60,42 @@ export function createPlayerStub(
     lightTrail.x = player.x;
     lightTrail.y = player.y + displaySize.height * 0.1;
   };
-  scene.events.on(Phaser.Scenes.Events.UPDATE, syncTrail);
+  const updatePose = () => {
+    const body = player.body as Phaser.Physics.Arcade.Body;
+    const grounded = body.blocked.down || body.touching.down;
+    let nextPose: PlayerPose = "idle";
+
+    if (!grounded) {
+      if (body.velocity.x > 40) {
+        nextPose = "right";
+        lastAirFacing = "right";
+      } else if (body.velocity.x < -40) {
+        nextPose = "left";
+        lastAirFacing = "left";
+      } else {
+        nextPose = lastAirFacing;
+      }
+    } else if (Math.abs(body.velocity.x) > 120) {
+      nextPose = body.velocity.x > 0 ? "right" : "left";
+      lastAirFacing = nextPose === "right" ? "right" : "left";
+    }
+
+    if (nextPose !== activePose) {
+      activePose = nextPose;
+      player.setTexture(poseTextures[activePose]);
+      player.setDisplaySize(displaySize.width, displaySize.height);
+    }
+  };
+
+  const updatePlayerVisuals = () => {
+    syncTrail();
+    updatePose();
+  };
+
+  scene.events.on(Phaser.Scenes.Events.UPDATE, updatePlayerVisuals);
 
   player.on(Phaser.GameObjects.Events.DESTROY, () => {
-    scene.events.off(Phaser.Scenes.Events.UPDATE, syncTrail);
+    scene.events.off(Phaser.Scenes.Events.UPDATE, updatePlayerVisuals);
     lightTrail.destroy();
   });
 

@@ -40,6 +40,58 @@ const PLATFORM_CONFIG: Record<PlatformType, PlatformVisualConfig> = {
   crumble: { texture: IMAGE_KEYS.platformCrumble, widthMultiplier: 1, height: 22 },
 };
 
+type PlatformPhase = {
+  progressStart: number;
+  spacingRange: { min: number; max: number };
+  widthRange: { min: number; max: number };
+  patternChance: number;
+  weights: Partial<Record<PlatformType, number>>;
+};
+
+type PlatformPatternStep = {
+  spacing: number;
+  offsetX: number;
+  widthFactor?: number;
+  type?: PlatformType;
+};
+
+type PlatformPattern = {
+  steps: PlatformPatternStep[];
+};
+
+const DIFFICULTY_HEIGHT = 12000;
+
+const PLATFORM_PHASES: PlatformPhase[] = [
+  {
+    progressStart: 0,
+    spacingRange: { min: 90, max: 125 },
+    widthRange: { min: 0.55, max: 0.75 },
+    patternChance: 0.08,
+    weights: { normal: 5, wide: 3, narrow: 1 },
+  },
+  {
+    progressStart: 0.25,
+    spacingRange: { min: 105, max: 145 },
+    widthRange: { min: 0.48, max: 0.65 },
+    patternChance: 0.12,
+    weights: { normal: 4, wide: 2, narrow: 2, ice: 1 },
+  },
+  {
+    progressStart: 0.5,
+    spacingRange: { min: 120, max: 170 },
+    widthRange: { min: 0.38, max: 0.58 },
+    patternChance: 0.18,
+    weights: { normal: 3, narrow: 3, ice: 2, boost: 1, conveyorRight: 1 },
+  },
+  {
+    progressStart: 0.75,
+    spacingRange: { min: 135, max: 195 },
+    widthRange: { min: 0.32, max: 0.5 },
+    patternChance: 0.24,
+    weights: { narrow: 4, ice: 2, boost: 2, conveyorRight: 2, crumble: 2 },
+  },
+];
+
 /**
  * PlatformManager - Infinite Platform Generation for Icy Tower
  */
@@ -50,6 +102,9 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   private lastGeneratedY = 0;
   private startY = 0;
   private readonly generationOffset = 100;
+  private readonly safePlatformCount = 5;
+  private readonly safeSpacing = 90;
+  private activePattern: { pattern: PlatformPattern; index: number } | null = null;
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -63,7 +118,8 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.lastGeneratedY = startY;
 
     this.createBasePlatform(this.scene.scale.width / 2, startY, this.scene.scale.width * 0.8);
-    this.generatePlatformsUpTo(startY - 2000);
+    this.generateSafeRunway();
+    this.generatePlatformsUpTo(this.lastGeneratedY - 2000);
   }
 
   public update(camera: Phaser.Cameras.Scene2D.Camera): void {
@@ -101,6 +157,7 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.platformList.forEach((platform) => platform.sprite.destroy());
     this.platformList = [];
     this.platformsGroup.clear(true, true);
+    this.activePattern = null;
   }
 
   private generatePlatformsUpTo(targetY: number): void {
@@ -117,51 +174,243 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.lastGeneratedY = currentY;
   }
 
+  private generateSafeRunway(): void {
+    const baseX = this.scene.scale.width / 2;
+    let currentY = this.startY - this.safeSpacing;
+
+    for (let i = 0; i < this.safePlatformCount; i += 1) {
+      const width = Phaser.Math.Linear(this.scene.scale.width * 0.75, this.scene.scale.width * 0.55, i / this.safePlatformCount);
+      const offset = Phaser.Math.Between(-70, 70);
+      const clampedX = Phaser.Math.Clamp(baseX + offset, width * 0.5 + 20, this.scene.scale.width - width * 0.5 - 20);
+      const type: PlatformType = i < 2 ? "wide" : "normal";
+      const platform = this.createPlatform(clampedX, currentY, width, type);
+      this.platformList.push(platform);
+      currentY -= this.safeSpacing;
+    }
+
+    this.lastGeneratedY = currentY;
+  }
+
   private getPlatformDataForHeight(height: number): {
     x: number;
     width: number;
     spacing: number;
     type: PlatformType;
   } {
-    const progress = Phaser.Math.Clamp(height / 10000, 0, 1);
-    const baseSpacing = 110;
-    const maxSpacing = 190;
-    const spacing = Phaser.Math.Linear(baseSpacing, maxSpacing, progress * 0.7);
+    const progress = Phaser.Math.Clamp(height / DIFFICULTY_HEIGHT, 0, 1);
 
-    const baseWidth = this.scene.scale.width * 0.75;
-    const minWidth = 90;
-    const width = Phaser.Math.Linear(baseWidth, minWidth, progress);
-
-    let type: PlatformType = "normal";
-    const random = Math.random();
-    if (progress > 0.65 && random < 0.12) {
-      type = "crumble";
-    } else if (progress > 0.55 && random < 0.18) {
-      type = "conveyorRight";
-    } else if (progress > 0.45 && random < 0.25) {
-      type = "boost";
-    } else if (progress > 0.35 && random < 0.25) {
-      type = "ice";
-    } else if (progress > 0.25 && random < 0.35) {
-      type = "narrow";
-    } else if (random < 0.15) {
-      type = "wide";
+    const patternData = this.consumePatternStep(progress);
+    if (patternData) {
+      return patternData;
     }
 
-    const padding = 50;
-    const minX = padding + width / 2;
-    const maxX = this.scene.scale.width - padding - width / 2;
-    let x = Phaser.Math.Between(minX, maxX);
-
-    if (this.platformList.length > 0) {
-      const lastPlatform = this.platformList[this.platformList.length - 1];
-      const minDistance = 120;
-      if (Math.abs(x - lastPlatform.sprite.x) < minDistance) {
-        x = x < this.scene.scale.width / 2 ? Math.max(minX, x - minDistance) : Math.min(maxX, x + minDistance);
+    if (!this.activePattern && Math.random() < this.getPhaseForProgress(progress).patternChance) {
+      this.activePattern = { pattern: this.createPattern(progress), index: 0 };
+      const seededData = this.consumePatternStep(progress);
+      if (seededData) {
+        return seededData;
       }
     }
 
+    return this.buildFreeformPlatform(progress);
+  }
+
+  private buildFreeformPlatform(progress: number): {
+    x: number;
+    width: number;
+    spacing: number;
+    type: PlatformType;
+  } {
+    const phase = this.getPhaseForProgress(progress);
+    let width = this.rollWidth(phase);
+    const spacing = this.rollSpacing(phase);
+
+    let type = this.rollPlatformType(progress, phase.weights);
+
+    if (type === "wide") {
+      width = Math.min(width * 1.15, this.scene.scale.width * 0.85);
+    } else if (type === "narrow") {
+      width = Math.max(width * 0.75, 60);
+    }
+
+    if (Math.random() < 0.18) {
+      const modifier = Phaser.Math.FloatBetween(0.75, 1.25);
+      width = Phaser.Math.Clamp(width * modifier, 60, this.scene.scale.width * 0.85);
+      if (modifier < 0.85 && Math.random() < 0.5) {
+        type = "narrow";
+      }
+    }
+
+    const x = this.rollPlatformX(width);
     return { x, width, spacing, type };
+  }
+
+  private rollSpacing(phase: PlatformPhase): number {
+    const base = Phaser.Math.FloatBetween(phase.spacingRange.min, phase.spacingRange.max);
+    let spacing = base * Phaser.Math.FloatBetween(0.92, 1.15);
+
+    if (Math.random() < 0.12) {
+      spacing *= 1.35;
+    } else if (Math.random() < 0.2) {
+      spacing *= 0.78;
+    }
+
+    return Phaser.Math.Clamp(spacing, 70, 240);
+  }
+
+  private rollWidth(phase: PlatformPhase): number {
+    const multiplier = Phaser.Math.FloatBetween(phase.widthRange.min, phase.widthRange.max);
+    return Phaser.Math.Clamp(this.scene.scale.width * multiplier, 60, this.scene.scale.width * 0.85);
+  }
+
+  private rollPlatformX(width: number): number {
+    const lastPlatform = this.platformList[this.platformList.length - 1];
+    const lastX = lastPlatform?.sprite.x ?? this.scene.scale.width / 2;
+    const padding = 40;
+    const minX = padding + width / 2;
+    const maxX = this.scene.scale.width - padding - width / 2;
+
+    let x = lastX + Phaser.Math.FloatBetween(-220, 220);
+    if (Math.random() < 0.35) {
+      const swingToRight = lastX < (minX + maxX) / 2;
+      const swingMin = swingToRight ? Math.min(lastX + 80, maxX) : minX;
+      const swingMax = swingToRight ? maxX : Math.max(lastX - 80, minX);
+      if (swingMax > swingMin) {
+        x = Phaser.Math.FloatBetween(swingMin, swingMax);
+      }
+    }
+
+    if (Math.random() < 0.15) {
+      x = Phaser.Math.FloatBetween(minX, maxX);
+    }
+
+    if (Math.abs(x - lastX) < 50) {
+      x += x < lastX ? -70 : 70;
+    }
+
+    return this.clampPlatformX(x, width);
+  }
+
+  private clampPlatformX(x: number, width: number): number {
+    const padding = 40;
+    const minX = padding + width / 2;
+    const maxX = this.scene.scale.width - padding - width / 2;
+    return Phaser.Math.Clamp(x, minX, maxX);
+  }
+
+  private getPhaseForProgress(progress: number): PlatformPhase {
+    for (let i = PLATFORM_PHASES.length - 1; i >= 0; i -= 1) {
+      if (progress >= PLATFORM_PHASES[i].progressStart) {
+        return PLATFORM_PHASES[i];
+      }
+    }
+    return PLATFORM_PHASES[0];
+  }
+
+  private rollPlatformType(
+    progress: number,
+    weightOverrides?: Partial<Record<PlatformType, number>>
+  ): PlatformType {
+    const baseWeights: Record<PlatformType, number> = {
+      normal: Phaser.Math.Linear(3, 1.2, progress),
+      wide: Phaser.Math.Linear(1.3, 0.3, progress),
+      narrow: Phaser.Math.Linear(0.5, 1.7, progress),
+      ice: progress > 0.2 ? Phaser.Math.Linear(0.15, 1.2, progress) : 0,
+      boost: progress > 0.3 ? Phaser.Math.Linear(0.1, 1.3, progress) : 0,
+      conveyorRight: progress > 0.55 ? Phaser.Math.Linear(0.05, 1, progress) : 0,
+      crumble: progress > 0.65 ? Phaser.Math.Linear(0.05, 0.9, progress) : 0,
+    };
+
+    this.applyWeightOverrides(baseWeights, this.getPhaseForProgress(progress).weights);
+    this.applyWeightOverrides(baseWeights, weightOverrides);
+
+    const entries = Object.entries(baseWeights).filter(([, weight]) => weight > 0) as Array<
+      [PlatformType, number]
+    >;
+    const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+    let roll = Math.random() * total;
+    for (const [type, weight] of entries) {
+      roll -= weight;
+      if (roll <= 0) {
+        return type;
+      }
+    }
+    return "normal";
+  }
+
+  private applyWeightOverrides(
+    target: Record<PlatformType, number>,
+    overrides?: Partial<Record<PlatformType, number>>
+  ): void {
+    if (!overrides) {
+      return;
+    }
+    Object.entries(overrides).forEach(([key, value]) => {
+      const typedKey = key as PlatformType;
+      if (value && value > 0) {
+        target[typedKey] = (target[typedKey] ?? 0) + value;
+      }
+    });
+  }
+
+  private consumePatternStep(
+    progress: number
+  ): { x: number; width: number; spacing: number; type: PlatformType } | null {
+    if (!this.activePattern) {
+      return null;
+    }
+    const { pattern, index } = this.activePattern;
+    const step = pattern.steps[index];
+    this.activePattern.index += 1;
+    if (this.activePattern.index >= pattern.steps.length) {
+      this.activePattern = null;
+    }
+
+    const width =
+      step.widthFactor !== undefined
+        ? Phaser.Math.Clamp(this.scene.scale.width * step.widthFactor, 60, this.scene.scale.width * 0.85)
+        : this.rollWidth(this.getPhaseForProgress(progress));
+    const x = this.clampPlatformX(this.getLastPlatformX() + step.offsetX, width);
+    const spacing = Phaser.Math.Clamp(step.spacing, 65, 260);
+    const type = step.type ?? this.rollPlatformType(progress);
+
+    return { x, width, spacing, type };
+  }
+
+  private getLastPlatformX(): number {
+    return this.platformList[this.platformList.length - 1]?.sprite.x ?? this.scene.scale.width / 2;
+  }
+
+  private createPattern(progress: number): PlatformPattern {
+    if (progress < 0.35) {
+      return {
+        steps: [
+          { spacing: 85, offsetX: -120, widthFactor: 0.6, type: "wide" },
+          { spacing: 75, offsetX: 150, widthFactor: 0.5 },
+          { spacing: 80, offsetX: -110, widthFactor: 0.45 },
+        ],
+      };
+    }
+
+    if (progress < 0.65) {
+      const shift = Phaser.Math.Between(-40, 40);
+      return {
+        steps: [
+          { spacing: 110, offsetX: shift, widthFactor: 0.52 },
+          { spacing: 135, offsetX: 80, widthFactor: 0.42, type: "narrow" },
+          { spacing: 190, offsetX: -60, widthFactor: 0.5, type: "boost" },
+        ],
+      };
+    }
+
+    return {
+      steps: [
+        { spacing: 105, offsetX: -90, widthFactor: 0.4, type: "ice" },
+        { spacing: 125, offsetX: 150, widthFactor: 0.36, type: "conveyorRight" },
+        { spacing: 160, offsetX: -180, widthFactor: 0.34, type: "crumble" },
+        { spacing: 140, offsetX: 120, widthFactor: 0.38 },
+      ],
+    };
   }
 
   private createPlatform(x: number, y: number, width: number, type: PlatformType): Platform {
@@ -180,6 +429,7 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     body.checkCollision.down = false;
     body.checkCollision.left = true;
     body.checkCollision.right = true;
+    platform.setData("platformType", type);
     platform.refreshBody();
     this.platformsGroup.add(platform);
 
