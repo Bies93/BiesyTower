@@ -27,12 +27,12 @@ export function createPlayerStub(
   player.setBounce(0.05);
   player.setDragX(900);
   player.setMaxVelocity(260, 900);
-  const bodyOffsetY = displaySize.height - hitboxSize.height;
+  const feetLift = 4; // lässt die Figur optisch höher stehen
   player.body
     .setSize(hitboxSize.width, hitboxSize.height)
     .setOffset(
       (displaySize.width - hitboxSize.width) / 2,
-      bodyOffsetY
+      (displaySize.height - hitboxSize.height) + feetLift
     );
   // Unterseite bleibt kollisionsfähig, Oberseite nicht „hakt“
   (player.body as Phaser.Physics.Arcade.Body).checkCollision.up = false;
