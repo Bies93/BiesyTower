@@ -20,19 +20,22 @@ export function createPlayerStub(
   y: number
 ): Phaser.Types.Physics.Arcade.SpriteWithDynamicBody {
   const displaySize = { width: 48, height: 48 };
-  const hitboxSize = { width: 32, height: 40 };
+  const hitboxSize = { width: 32, height: 40 }; // klassische Arcade-Hitbox für stabile Bodenhaftung
   const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerIdleLanding);
   player.setDisplaySize(displaySize.width, displaySize.height);
   player.setCollideWorldBounds(true);
   player.setBounce(0.05);
   player.setDragX(900);
   player.setMaxVelocity(260, 900);
+  const bodyOffsetY = displaySize.height - hitboxSize.height;
   player.body
     .setSize(hitboxSize.width, hitboxSize.height)
     .setOffset(
       (displaySize.width - hitboxSize.width) / 2,
-      displaySize.height - hitboxSize.height
+      bodyOffsetY
     );
+  // Unterseite bleibt kollisionsfähig, Oberseite nicht „hakt“
+  (player.body as Phaser.Physics.Arcade.Body).checkCollision.up = false;
 
   player.setDepth(5);
 
