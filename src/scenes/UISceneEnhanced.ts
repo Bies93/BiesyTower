@@ -8,7 +8,7 @@ import { UISystem } from "../core/ui/UISystem";
  * - Visual feedback and smooth transitions
  * - Empfängt Updates von GameScene via Events
  */
-export class UIScene extends Phaser.Scene {
+export class UISceneEnhanced extends Phaser.Scene {
   private uiSystem!: UISystem;
   private heightContainer!: Phaser.GameObjects.Container;
   private scoreContainer!: Phaser.GameObjects.Container;

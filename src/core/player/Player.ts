@@ -20,19 +20,22 @@ export function createPlayerStub(
   y: number
 ): Phaser.Types.Physics.Arcade.SpriteWithDynamicBody {
   const displaySize = { width: 48, height: 48 };
-  const hitboxSize = { width: 32, height: 40 };
+  const hitboxSize = { width: 30, height: 36 }; // etwas kürzer und schmaler
   const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerIdleLanding);
   player.setDisplaySize(displaySize.width, displaySize.height);
   player.setCollideWorldBounds(true);
   player.setBounce(0.05);
   player.setDragX(900);
   player.setMaxVelocity(260, 900);
+  const feetLift = 4; // lässt die Figur optisch höher stehen
   player.body
     .setSize(hitboxSize.width, hitboxSize.height)
     .setOffset(
       (displaySize.width - hitboxSize.width) / 2,
-      displaySize.height - hitboxSize.height
+      (displaySize.height - hitboxSize.height) + feetLift
     );
+  // Unterseite bleibt kollisionsfähig, Oberseite nicht „hakt“
+  (player.body as Phaser.Physics.Arcade.Body).checkCollision.up = false;
 
   player.setDepth(5);
 

@@ -426,14 +426,15 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     body.checkCollision.right = true;
 
     // Raise the collider so the player stands visually on top of the platform
-    const colliderWidth = actualWidth * 0.92;
-    const colliderHeight = Math.max(8, config.height * 0.38);
+    const colliderWidth = Math.max(24, actualWidth * 0.92);
+    const colliderHeight = Math.max(6, config.height * 0.34);
     const horizontalOffset = (actualWidth - colliderWidth) / 2;
+    const verticalLift = 6; // hebt die physische Oberkante an
     body.setSize(colliderWidth, colliderHeight);
-    body.setOffset(horizontalOffset, 0);
+    body.setOffset(horizontalOffset, -verticalLift);
 
     platform.setData("platformType", type);
-    platform.refreshBody();
+    platform.refreshBody(); // Body-Änderungen aktivieren
     this.platformsGroup.add(platform);
 
     // Add visual enhancements for special platform types
