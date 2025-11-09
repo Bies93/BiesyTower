@@ -1,12 +1,17 @@
 # Dependencies
 node_modules/
+jspm_packages/
 
 # Build outputs
 dist/
 build/
 out/
+.next/
+.nuxt/
+.vuepress/dist
 
 # Environment variables
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -44,15 +49,8 @@ bower_components/
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release/
 
-# Dependency directories
-node_modules/
-jspm_packages/
-
-# Typescript v1, mostly ignored, public directory and `jspm_packages` are added back
+# Typescript
 *.tsbuildinfo
-node_modules/
-jspm_packages/
-dist/
 
 # Optional npm cache directory
 .npm
@@ -75,26 +73,12 @@ dist/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache/
-
-# Next.js build output
-.next/
-out/
-
-# Nuxt.js build / generate output
-.nuxt/
-dist/
 
 # Gatsby files
 .cache/
 public/
-
-# vuepress build output
-.vuepress/dist
 
 # Serverless directories
 .serverless/
