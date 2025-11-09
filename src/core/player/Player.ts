@@ -28,7 +28,7 @@ export function createPlayerStub(
   player.setMaxVelocity(260, 900);
   player.body
     .setSize(displaySize.width * 0.6, displaySize.height * 0.8)
-    .setOffset(displaySize.width * 0.2, displaySize.height * 0.1);
+    .setOffset(displaySize.width * 0.2, displaySize.height * 0.2);
 
   player.setDepth(5);
 
