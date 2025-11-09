@@ -10,22 +10,19 @@ import { UISystem } from "../core/ui/UISystem";
  */
 export class UIScene extends Phaser.Scene {
   private uiSystem!: UISystem;
-  private heightContainer!: Phaser.GameObjects.Container;
-  private scoreContainer!: Phaser.GameObjects.Container;
+  private topBanner!: Phaser.GameObjects.Container;
+  private bannerBackground!: Phaser.GameObjects.Rectangle;
+  private bannerShine!: Phaser.GameObjects.Rectangle;
   private heightText!: Phaser.GameObjects.Text;
   private scoreText!: Phaser.GameObjects.Text;
-  private heightLabel!: Phaser.GameObjects.Text;
-  private scoreLabel!: Phaser.GameObjects.Text;
+  private highScoreText!: Phaser.GameObjects.Text;
+  private bannerGlow!: Phaser.GameObjects.Graphics;
   private currentHeight: number = 0;
   private currentScore: number = 0;
   private highScore: number = 0;
   private highScoreDisplayEl?: HTMLElement;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
-  private hudFrame!: Phaser.GameObjects.Graphics;
-  private connectorGraphic!: Phaser.GameObjects.Graphics;
-  private hudBackdrop!: Phaser.GameObjects.Graphics;
-  private heightIcon!: Phaser.GameObjects.Rectangle;
-  private scoreIcon!: Phaser.GameObjects.Star;
+  private bannerAccent!: Phaser.GameObjects.Graphics;
   private comboContainer!: Phaser.GameObjects.Container;
   private comboText!: Phaser.GameObjects.Text;
   private comboMultiplierText!: Phaser.GameObjects.Text;
@@ -59,14 +56,8 @@ export class UIScene extends Phaser.Scene {
     }
     this.updateHighScoreDisplay();
 
-    this.createHUDBackdrop();
-    // Create HUD panels
-    this.createHUDPanels();
-    
-    // Create animated counters
-    this.createCounters();
-    this.createHUDDecorations();
-    
+    this.createTopBanner();
+
     // Create score burst effect
     this.createScoreBurstContainer();
     this.createComboIndicator();
@@ -89,140 +80,154 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  private createHUDBackdrop(): void {
+  private createTopBanner(): void {
     const { width } = this.scale;
-    this.hudBackdrop = this.add.graphics().setDepth(50);
-    this.hudBackdrop.fillStyle(0x071225, 0.55);
-    // schlanker Streifen direkt am oberen Rand des Canvas
-    this.hudBackdrop.fillRoundedRect(16, 12, width - 32, 56, 16);
-    this.hudBackdrop.lineStyle(1, 0x102339, 0.85);
-    this.hudBackdrop.strokeRoundedRect(16, 12, width - 32, 56, 16);
-    this.hudBackdrop.setScrollFactor(0);
-  }
+    const bannerWidth = width - 40;
 
-  private createHUDPanels(): void {
-    const { width } = this.scale;
+    this.topBanner = this.add.container(width / 2, 42).setDepth(100).setScrollFactor(0);
 
-    // Height panel (left side)
-    this.heightContainer = this.uiSystem.createPanel({
-      x: 120,
-      y: 40,
-      width: 150,
-      height: 56,
-      backgroundColor: 0x030d20,
-      borderColor: 0x4adeff,
-      alpha: 0.95
-    })
-      .setDepth(100)
-      .setScrollFactor(0);
+    this.bannerGlow = this.add.graphics();
+    this.bannerGlow.fillStyle(0x102b4b, 0.8);
+    this.bannerGlow.fillRoundedRect(-bannerWidth / 2, -30, bannerWidth, 60, 20);
+    this.bannerGlow.lineStyle(2, 0x3cb9ff, 0.5);
+    this.bannerGlow.strokeRoundedRect(-bannerWidth / 2, -30, bannerWidth, 60, 20);
+    this.bannerGlow.setAlpha(0.92);
 
-    // Score panel (right side)
-    this.scoreContainer = this.uiSystem.createPanel({
-      x: width - 120,
-      y: 40,
-      width: 150,
-      height: 56,
-      backgroundColor: 0x030d20,
-      borderColor: 0x9acbff,
-      alpha: 0.95
-    })
-      .setDepth(100)
-      .setScrollFactor(0);
+    this.bannerBackground = this.add
+      .rectangle(0, 0, bannerWidth - 16, 52, 0x051022, 0.92)
+      .setStrokeStyle(1.2, 0x1b4d8c, 0.6)
+      .setDepth(0.95);
 
-    // keine Float-Animation mehr; feste, ruhige HUD
-  }
+    this.bannerShine = this.add
+      .rectangle(0, -12, bannerWidth - 24, 20, 0xffffff, 0.05)
+      .setBlendMode(Phaser.BlendModes.SCREEN);
 
-  private createCounters(): void {
-    // Height label and value
-    this.heightLabel = this.uiSystem.createGlowingText("HEIGHT", this.heightContainer.x, this.heightContainer.y - 15, {
-      fontSize: "14px",
-      color: "#9acbff"
-    });
-    this.heightLabel.setOrigin(0.5);
-    this.heightContainer.add(this.heightLabel);
-    this.heightLabel.setPosition(0, -12);
+    const accentLine = this.add
+      .rectangle(0, 24, bannerWidth - 60, 4, 0x3cb9ff, 0.35)
+      .setOrigin(0.5, 1)
+      .setDepth(1.1);
 
-    this.heightText = this.uiSystem.createGlowingText("0", this.heightContainer.x, this.heightContainer.y + 10, {
-      fontSize: "28px",
-      color: "#e9f3ff"
-    });
-    this.heightText.setOrigin(0.5);
-    this.heightContainer.add(this.heightText);
-    this.heightText.setPosition(0, 6);
+    const brandGroup = this.add.container(-bannerWidth / 2 + 90, -2);
+    const brandGlow = this.add
+      .rectangle(-20, 0, 46, 46, 0x0b5cff, 0.32)
+      .setStrokeStyle(2, 0x7ce8ff, 0.55)
+      .setAngle(45)
+      .setDepth(1.2);
+    brandGlow.setBlendMode(Phaser.BlendModes.ADD);
 
-    // Score label and value
-    this.scoreLabel = this.uiSystem.createGlowingText("SCORE", this.scoreContainer.x, this.scoreContainer.y - 15, {
-      fontSize: "14px",
-      color: "#9acbff"
-    });
-    this.scoreLabel.setOrigin(0.5);
-    this.scoreContainer.add(this.scoreLabel);
-    this.scoreLabel.setPosition(0, -12);
+    const brandText = this.uiSystem
+      .createGlowingText("BIESY TOWER", 10, -6, {
+        fontSize: "18px",
+        color: "#f5fbff",
+      })
+      .setOrigin(0, 0.5);
+    brandText.setShadow(0, 6, "rgba(13, 80, 140, 0.65)", 12);
 
-    this.scoreText = this.uiSystem.createGlowingText("0", this.scoreContainer.x, this.scoreContainer.y + 10, {
-      fontSize: "28px",
-      color: "#e9f3ff"
-    });
-    this.scoreText.setOrigin(0.5);
-    this.scoreContainer.add(this.scoreText);
-    this.scoreText.setPosition(0, 6);
+    const brandSub = this.uiSystem
+      .createGlowingText("Skyscraper Prototype", 10, 12, {
+        fontSize: "11px",
+        color: "#8dc7ff",
+      })
+      .setOrigin(0, 0.5);
+    brandSub.setAlpha(0.85);
 
-    // Add subtle glow pulsing
+    brandGroup.add([brandGlow, brandText, brandSub]);
+
+    const metricsStartX = -bannerWidth / 2 + 220;
+    const metricSpacing = 130;
+
+    this.heightText = this.createMetricBlock(metricsStartX, "HEIGHT", "0");
+    this.scoreText = this.createMetricBlock(metricsStartX + metricSpacing, "SCORE", "0");
+    this.highScoreText = this.createMetricBlock(metricsStartX + metricSpacing * 2, "HIGH", this.highScore.toString());
+
+    this.bannerAccent = this.add.graphics();
+    this.bannerAccent.lineStyle(1, 0x3cb9ff, 0.4);
+    this.bannerAccent.strokeRoundedRect(-bannerWidth / 2 + 12, -26, bannerWidth - 24, 52, 18);
+
+    this.topBanner.add([
+      this.bannerGlow,
+      this.bannerBackground,
+      this.bannerShine,
+      accentLine,
+      this.bannerAccent,
+      brandGroup,
+      this.heightText,
+      this.scoreText,
+      this.highScoreText,
+    ]);
+
+    this.highScoreText.setText(this.highScore.toString());
+
     this.tweens.add({
-      targets: [this.heightText, this.scoreText],
-      alpha: 0.9,
-      duration: 2000,
+      targets: [this.bannerShine],
+      y: { from: -18, to: -8 },
+      alpha: { from: 0.08, to: 0.22 },
+      duration: 2600,
       yoyo: true,
       repeat: -1,
-      ease: "Sine.easeInOut"
+      ease: "Sine.easeInOut",
     });
   }
 
-  private createHUDDecorations(): void {
-    this.hudFrame = this.add.graphics().setDepth(0.4);
-    this.connectorGraphic = this.add.graphics().setDepth(0.35);
-    this.redrawHUDFrame(0);
+  private createMetricBlock(x: number, label: string, initialValue: string): Phaser.GameObjects.Text {
+    const labelText = this.uiSystem.createGlowingText(label, x, -12, {
+      fontSize: "11px",
+      color: "#80bfff",
+    });
+    labelText.setOrigin(0.5);
 
-    // Iconography to anchor panels
-    this.heightIcon = this.add
-      .rectangle(58, 60, 12, 12, 0x4adeff, 0.5)
-      .setDepth(0.5)
-      .setAngle(45)
-      .setStrokeStyle(2, 0xffffff, 0.4);
+    const valueText = this.uiSystem.createGlowingText(initialValue, x, 10, {
+      fontSize: "26px",
+      color: "#f6fbff",
+    });
+    valueText.setOrigin(0.5);
 
-    this.scoreIcon = this.add
-      .star(this.scale.width - 58, 60, 5, 4, 9, 0x9acbff, 0.45)
-      .setDepth(0.5)
-      .setStrokeStyle(1, 0xffffff, 0.35);
+    this.topBanner.add([labelText, valueText]);
 
-    this.heightIcon.setBlendMode(Phaser.BlendModes.ADD);
-    this.scoreIcon.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: valueText,
+      alpha: { from: 0.9, to: 1 },
+      duration: 2200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    return valueText;
   }
 
   private redrawHUDFrame(progress: number): void {
     const { width } = this.scale;
     const accent = Phaser.Display.Color.Interpolate.ColorWithColor(
-      Phaser.Display.Color.ValueToColor(0x1c3c5b),
+      Phaser.Display.Color.ValueToColor(0x123154),
       Phaser.Display.Color.ValueToColor(0x7ce8ff),
       100,
       progress * 100
     );
     const accentColor = Phaser.Display.Color.GetColor(accent.r, accent.g, accent.b);
 
-    this.hudFrame.clear();
-    this.hudFrame.fillStyle(0x01040b, 0.22);
-    this.hudFrame.fillRoundedRect(30, 18, width - 60, 96, 24);
-    this.hudFrame.lineStyle(2, accentColor, 0.28 + progress * 0.2);
-    this.hudFrame.strokeRoundedRect(30, 18, width - 60, 96, 24);
+    this.bannerGlow.clear();
+    this.bannerGlow.fillStyle(0x08192f, 0.88 + progress * 0.05);
+    this.bannerGlow.fillRoundedRect(-width / 2 + 20, -30, width - 40, 60, 20);
+    this.bannerGlow.lineStyle(2, accentColor, 0.4 + progress * 0.2);
+    this.bannerGlow.strokeRoundedRect(-width / 2 + 20, -30, width - 40, 60, 20);
 
-    this.connectorGraphic.clear();
-    this.connectorGraphic.lineStyle(1, accentColor, 0.35 + progress * 0.2);
-    this.connectorGraphic.beginPath();
-    this.connectorGraphic.moveTo(58, 92);
-    this.connectorGraphic.lineTo(58, 140);
-    this.connectorGraphic.moveTo(width - 58, 92);
-    this.connectorGraphic.lineTo(width - 58, 140);
-    this.connectorGraphic.strokePath();
+    this.bannerAccent.clear();
+    this.bannerAccent.lineStyle(1, accentColor, 0.35 + progress * 0.25);
+    this.bannerAccent.strokeRoundedRect(-width / 2 + 32, -24, width - 64, 48, 16);
+
+    const backgroundColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0x051022),
+      Phaser.Display.Color.ValueToColor(0x0f2f4f),
+      100,
+      progress * 100
+    );
+    this.bannerBackground.setFillStyle(
+      Phaser.Display.Color.GetColor(backgroundColor.r, backgroundColor.g, backgroundColor.b),
+      0.92
+    );
+
+    this.bannerShine.setAlpha(0.08 + progress * 0.12);
   }
 
   private createScoreBurstContainer(): void {
@@ -357,7 +362,7 @@ export class UIScene extends Phaser.Scene {
     });
     
     this.heightText.setText(this.currentHeight.toString());
-    
+
     // Add spark effect
     const heightBounds = this.heightText.getBounds();
     this.createNumberSpark(heightBounds.centerX, heightBounds.centerY);
@@ -379,6 +384,7 @@ export class UIScene extends Phaser.Scene {
 
   private updateHighScoreDisplay(pulse = false): void {
     if (!this.highScoreDisplayEl) {
+      this.highScoreText?.setText(this.highScore.toString());
       return;
     }
 
@@ -389,6 +395,20 @@ export class UIScene extends Phaser.Scene {
       // Force reflow so the animation can restart when the class is re-added
       void this.highScoreDisplayEl.offsetWidth;
       this.highScoreDisplayEl.classList.add("is-updated");
+    }
+
+    if (this.highScoreText) {
+      this.highScoreText.setText(this.highScore.toString());
+      if (pulse) {
+        this.tweens.add({
+          targets: this.highScoreText,
+          scaleX: { from: 1, to: 1.1 },
+          scaleY: { from: 1, to: 1.1 },
+          yoyo: true,
+          duration: 200,
+          ease: "Sine.easeOut",
+        });
+      }
     }
   }
 
@@ -437,7 +457,6 @@ export class UIScene extends Phaser.Scene {
   private onHeightProgress(payload: { progress: number }): void {
     const progress = Phaser.Math.Clamp(payload?.progress ?? 0, 0, 1);
     this.redrawHUDFrame(progress);
-    this.hudBackdrop.setAlpha(0.45 + progress * 0.25);
     const heightColor = Phaser.Display.Color.Interpolate.ColorWithColor(
       Phaser.Display.Color.ValueToColor(0x4adeff),
       Phaser.Display.Color.ValueToColor(0xfff3c1),
@@ -450,17 +469,16 @@ export class UIScene extends Phaser.Scene {
       100,
       progress * 100
     );
-    this.heightIcon.setFillStyle(
-      Phaser.Display.Color.GetColor(heightColor.r, heightColor.g, heightColor.b),
-      0.45 + progress * 0.3
+    const heightColorValue = Phaser.Display.Color.GetColor(heightColor.r, heightColor.g, heightColor.b);
+    const scoreColorValue = Phaser.Display.Color.GetColor(scoreColor.r, scoreColor.g, scoreColor.b);
+    this.heightText.setTint(heightColorValue);
+    this.scoreText.setTint(scoreColorValue);
+    const highScoreColor = Phaser.Display.Color.GetColor(
+      Math.round(240 - progress * 40),
+      Math.round(248 - progress * 30),
+      255
     );
-    this.scoreIcon.setFillStyle(
-      Phaser.Display.Color.GetColor(scoreColor.r, scoreColor.g, scoreColor.b),
-      0.4 + progress * 0.25
-    );
-    const panelAlpha = 0.78 + progress * 0.15;
-    this.heightContainer.setAlpha(panelAlpha);
-    this.scoreContainer.setAlpha(panelAlpha);
+    this.highScoreText.setTint(highScoreColor);
   }
 
   private showMilestoneToast(height: number, bonus: number): void {
@@ -532,9 +550,11 @@ export class UIScene extends Phaser.Scene {
     
     // Fade out HUD temporarily
     this.tweens.add({
-      targets: [this.heightContainer, this.scoreContainer],
-      alpha: 0.3,
-      duration: 500
+      targets: this.topBanner,
+      alpha: 0.45,
+      duration: 500,
+      yoyo: true,
+      ease: "Sine.easeInOut",
     });
     
     // Show final stats
