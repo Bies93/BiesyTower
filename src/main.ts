@@ -8,6 +8,7 @@ import { baseGameConfig } from "./config/gameConfig";
 
 function createGame() {
   console.log("main.ts: Creating Phaser game");
+  const isDebug = new URLSearchParams(window.location.search).has("debug");
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     parent: "phaser-container",
@@ -15,11 +16,12 @@ function createGame() {
     height: baseGameConfig.viewport.height,
     backgroundColor: baseGameConfig.colors.background,
     pixelArt: true,
+    render: { pixelArt: true, antialias: false, roundPixels: true },
     physics: {
       default: "arcade",
       arcade: {
         gravity: { y: baseGameConfig.physics.gravityY },
-        debug: baseGameConfig.debug.physicsDebug,
+        debug: isDebug,
       },
     },
     scene: [BootScene, MenuScene, GameScene, UIScene],
