@@ -111,7 +111,7 @@ export class UIScene extends Phaser.Scene {
       backgroundColor: 0x030d20,
       borderColor: 0x4adeff,
       alpha: 0.95
-    });
+    }).setDepth(1.1);
 
     // Score panel (right side)
     this.scoreContainer = this.uiSystem.createPanel({
@@ -122,7 +122,7 @@ export class UIScene extends Phaser.Scene {
       backgroundColor: 0x030d20,
       borderColor: 0x9acbff,
       alpha: 0.95
-    });
+    }).setDepth(1.1);
 
     // Add floating animation to panels
     this.tweens.add({
@@ -136,33 +136,39 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createCounters(): void {
-    const { width } = this.scale;
-
     // Height label and value
-    this.heightLabel = this.uiSystem.createGlowingText("HEIGHT", 100, 35, {
+    this.heightLabel = this.uiSystem.createGlowingText("HEIGHT", this.heightContainer.x, this.heightContainer.y - 15, {
       fontSize: "14px",
       color: "#9acbff"
     });
     this.heightLabel.setOrigin(0.5);
+    this.heightContainer.add(this.heightLabel);
+    this.heightLabel.setPosition(0, -18);
 
-    this.heightText = this.uiSystem.createGlowingText("0", 100, 60, {
+    this.heightText = this.uiSystem.createGlowingText("0", this.heightContainer.x, this.heightContainer.y + 10, {
       fontSize: "28px",
       color: "#e9f3ff"
     });
     this.heightText.setOrigin(0.5);
+    this.heightContainer.add(this.heightText);
+    this.heightText.setPosition(0, 10);
 
     // Score label and value
-    this.scoreLabel = this.uiSystem.createGlowingText("SCORE", width - 100, 35, {
+    this.scoreLabel = this.uiSystem.createGlowingText("SCORE", this.scoreContainer.x, this.scoreContainer.y - 15, {
       fontSize: "14px",
       color: "#9acbff"
     });
     this.scoreLabel.setOrigin(0.5);
+    this.scoreContainer.add(this.scoreLabel);
+    this.scoreLabel.setPosition(0, -18);
 
-    this.scoreText = this.uiSystem.createGlowingText("0", width - 100, 60, {
+    this.scoreText = this.uiSystem.createGlowingText("0", this.scoreContainer.x, this.scoreContainer.y + 10, {
       fontSize: "28px",
       color: "#e9f3ff"
     });
     this.scoreText.setOrigin(0.5);
+    this.scoreContainer.add(this.scoreText);
+    this.scoreText.setPosition(0, 10);
 
     // Add subtle glow pulsing
     this.tweens.add({
@@ -356,7 +362,8 @@ export class UIScene extends Phaser.Scene {
     this.heightText.setText(this.currentHeight.toString());
     
     // Add spark effect
-    this.createNumberSpark(this.heightText.x, this.heightText.y);
+    const heightBounds = this.heightText.getBounds();
+    this.createNumberSpark(heightBounds.centerX, heightBounds.centerY);
   }
 
   private updateScoreDisplay(delta = 0): void {
@@ -389,8 +396,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createScoreBurst(): void {
-    const burstX = this.scoreText.x;
-    const burstY = this.scoreText.y;
+    const { centerX: burstX, centerY: burstY } = this.scoreText.getBounds();
     
     // Create multiple particles
     for (let i = 0; i < 8; i++) {
