@@ -20,6 +20,8 @@ export class UIScene extends Phaser.Scene {
   private currentScore: number = 0;
   private highScore: number = 0;
   private highScoreDisplayEl?: HTMLElement;
+  private scoreDisplayEl?: HTMLElement;
+  private heightDisplayEl?: HTMLElement;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
   private hudFrame!: Phaser.GameObjects.Graphics;
   private connectorGraphic!: Phaser.GameObjects.Graphics;
@@ -45,6 +47,14 @@ export class UIScene extends Phaser.Scene {
     if (highScoreElement instanceof HTMLElement) {
       this.highScoreDisplayEl = highScoreElement;
     }
+    const scoreElement = document.getElementById("score-display");
+    if (scoreElement instanceof HTMLElement) {
+      this.scoreDisplayEl = scoreElement;
+    }
+    const heightElement = document.getElementById("height-display");
+    if (heightElement instanceof HTMLElement) {
+      this.heightDisplayEl = heightElement;
+    }
 
     try {
       const storedHighScore = window.localStorage.getItem("biesytower-highscore");
@@ -58,6 +68,8 @@ export class UIScene extends Phaser.Scene {
       // Access to localStorage can fail in privacy modes; ignore gracefully
     }
     this.updateHighScoreDisplay();
+    this.updateDomValue(this.scoreDisplayEl, this.currentScore.toString());
+    this.updateDomValue(this.heightDisplayEl, `${this.currentHeight} m`);
 
     this.createHUDBackdrop();
     // Create HUD panels
@@ -357,10 +369,11 @@ export class UIScene extends Phaser.Scene {
     });
     
     this.heightText.setText(this.currentHeight.toString());
-    
+
     // Add spark effect
     const heightBounds = this.heightText.getBounds();
     this.createNumberSpark(heightBounds.centerX, heightBounds.centerY);
+    this.updateDomValue(this.heightDisplayEl, `${this.currentHeight} m`, true);
   }
 
   private updateScoreDisplay(delta = 0): void {
@@ -375,20 +388,33 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.scoreText.setText(this.currentScore.toString());
+    this.updateDomValue(this.scoreDisplayEl, this.currentScore.toString(), delta !== 0);
   }
 
   private updateHighScoreDisplay(pulse = false): void {
-    if (!this.highScoreDisplayEl) {
+    this.updateDomValue(this.highScoreDisplayEl, this.highScore.toString(), pulse);
+  }
+
+  private updateDomValue(element: HTMLElement | undefined, value: string, pulse = false): void {
+    if (!element) {
       return;
     }
 
-    this.highScoreDisplayEl.textContent = this.highScore.toString();
+    if (element.textContent === value) {
+      if (pulse) {
+        element.classList.remove("is-updated");
+        void element.offsetWidth;
+        element.classList.add("is-updated");
+      }
+      return;
+    }
+
+    element.textContent = value;
+    element.classList.remove("is-updated");
 
     if (pulse) {
-      this.highScoreDisplayEl.classList.remove("is-updated");
-      // Force reflow so the animation can restart when the class is re-added
-      void this.highScoreDisplayEl.offsetWidth;
-      this.highScoreDisplayEl.classList.add("is-updated");
+      void element.offsetWidth;
+      element.classList.add("is-updated");
     }
   }
 

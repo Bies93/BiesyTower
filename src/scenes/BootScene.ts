@@ -29,11 +29,13 @@ export class BootScene extends Phaser.Scene {
     title.setShadow(0, 0, "#7b2dff", 16, true, true);
 
     this.add
-      .text(width / 2, title.y + 28, "Pre-Alpha Build", {
+      .text(width / 2, title.y + 28, "Vertical Playground", {
         fontSize: "12px",
         color: "#ffe6ff",
+        letterSpacing: 6,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setAlpha(0.85);
 
     const barWidth = width * 0.6;
     const barX = width / 2;

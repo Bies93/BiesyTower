@@ -19,6 +19,10 @@ export class UISceneEnhanced extends Phaser.Scene {
   private currentHeight: number = 0;
   private currentScore: number = 0;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
+  private scoreDisplayEl?: HTMLElement;
+  private heightDisplayEl?: HTMLElement;
+  private highScoreDisplayEl?: HTMLElement;
+  private highScore = 0;
 
   constructor() {
     super({ key: "UIScene" });
@@ -27,6 +31,36 @@ export class UISceneEnhanced extends Phaser.Scene {
   create(): void {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
+
+    const scoreElement = document.getElementById("score-display");
+    if (scoreElement instanceof HTMLElement) {
+      this.scoreDisplayEl = scoreElement;
+    }
+
+    const heightElement = document.getElementById("height-display");
+    if (heightElement instanceof HTMLElement) {
+      this.heightDisplayEl = heightElement;
+    }
+
+    const highScoreElement = document.getElementById("high-score-display");
+    if (highScoreElement instanceof HTMLElement) {
+      this.highScoreDisplayEl = highScoreElement;
+    }
+
+    try {
+      const storedHighScore = window.localStorage.getItem("biesytower-highscore");
+      if (storedHighScore) {
+        const parsedHighScore = Number(storedHighScore);
+        if (!Number.isNaN(parsedHighScore)) {
+          this.highScore = parsedHighScore;
+        }
+      }
+    } catch (error) {
+      // Ignore access errors
+    }
+    this.updateDomValue(this.scoreDisplayEl, this.currentScore.toString());
+    this.updateDomValue(this.heightDisplayEl, `${this.currentHeight} m`);
+    this.updateDomValue(this.highScoreDisplayEl, this.highScore.toString());
 
     // Create HUD panels
     this.createHUDPanels();
@@ -128,26 +162,32 @@ export class UISceneEnhanced extends Phaser.Scene {
   private onHeightUpdate(height: number): void {
     const newHeight = Math.floor(height);
     const newScore = Math.floor(height * 10);
-    
+
     // Only update if values changed
     if (newHeight !== this.currentHeight) {
       this.currentHeight = newHeight;
       this.currentScore = newScore;
-      
+
       // Update text with animation
       this.updateHeightDisplay();
       this.updateScoreDisplay();
-      
+
+      if (this.currentScore > this.highScore) {
+        this.highScore = this.currentScore;
+        try {
+          window.localStorage.setItem("biesytower-highscore", this.highScore.toString());
+        } catch (error) {
+          // Ignore storage errors
+        }
+        this.updateDomValue(this.highScoreDisplayEl, this.highScore.toString(), true);
+      }
+
       // Create score burst effect for significant changes
       if (newHeight > 0 && newHeight % 50 === 0) {
         this.createScoreBurst();
       }
-    }
-
-    // Update DOM element if it exists
-    const scoreElement = document.getElementById("high-score-display");
-    if (scoreElement) {
-      scoreElement.textContent = this.currentScore.toString();
+      this.updateDomValue(this.scoreDisplayEl, this.currentScore.toString(), true);
+      this.updateDomValue(this.heightDisplayEl, `${this.currentHeight} m`, true);
     }
   }
 
@@ -163,6 +203,7 @@ export class UISceneEnhanced extends Phaser.Scene {
     });
     
     this.heightText.setText(this.currentHeight.toString());
+    this.updateDomValue(this.heightDisplayEl, `${this.currentHeight} m`, true);
     
     // Add spark effect
     this.createNumberSpark(this.heightText.x, this.heightText.y);
@@ -180,6 +221,7 @@ export class UISceneEnhanced extends Phaser.Scene {
     });
     
     this.scoreText.setText(this.currentScore.toString());
+    this.updateDomValue(this.scoreDisplayEl, this.currentScore.toString(), true);
   }
 
   private createScoreBurst(): void {
@@ -276,5 +318,28 @@ export class UISceneEnhanced extends Phaser.Scene {
       duration: 800,
       ease: "Power2"
     });
+  }
+
+  private updateDomValue(element: HTMLElement | undefined, value: string, pulse = false): void {
+    if (!element) {
+      return;
+    }
+
+    if (element.textContent === value) {
+      if (pulse) {
+        element.classList.remove("is-updated");
+        void element.offsetWidth;
+        element.classList.add("is-updated");
+      }
+      return;
+    }
+
+    element.textContent = value;
+    element.classList.remove("is-updated");
+
+    if (pulse) {
+      void element.offsetWidth;
+      element.classList.add("is-updated");
+    }
   }
 }

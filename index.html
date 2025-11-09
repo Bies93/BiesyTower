@@ -33,177 +33,197 @@
       }
       .game-wrapper {
         margin: auto;
-        width: min(480px, 100vw);
-        height: min(800px, 100vh);
-        border-radius: 18px;
-        padding: 10px 12px 14px;
-        background: linear-gradient(
-          145deg,
-          rgba(120, 200, 255, 0.35),
-          rgba(10, 40, 80, 0.95)
-        );
+        width: min(520px, 100vw);
+        height: min(860px, 100vh);
+        border-radius: 24px;
+        padding: 20px;
+        background: radial-gradient(160% 200% at 50% 0%, rgba(28, 78, 172, 0.45), rgba(3, 9, 25, 0.92) 65%);
         box-shadow:
-          0 24px 80px rgba(0, 0, 0, 0.55),
-          0 0 40px rgba(120, 200, 255, 0.18) inset;
-        backdrop-filter: blur(18px);
+          0 28px 60px rgba(2, 6, 22, 0.85),
+          inset 0 0 80px rgba(18, 247, 255, 0.08);
+        backdrop-filter: blur(24px);
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 18px;
         position: relative;
+        border: 1px solid rgba(80, 190, 255, 0.18);
       }
       .game-wrapper::before {
         content: "";
         position: absolute;
-        inset: 6px;
-        border-radius: 14px;
-        border: 1px solid rgba(74, 222, 255, 0.18);
+        inset: 12px;
+        border-radius: 18px;
+        background: linear-gradient(140deg, rgba(66, 165, 250, 0.12), rgba(18, 247, 255, 0.02));
         pointer-events: none;
-        box-shadow: 0 0 30px rgba(74, 222, 255, 0.15);
+        opacity: 0.9;
       }
-      .hud-bar {
+      .hud-banner {
+        position: relative;
+        z-index: 2;
         display: grid;
         grid-template-columns: auto 1fr auto;
-        align-items: stretch;
-        gap: 12px;
-        padding: 6px 12px;
-        border-radius: 14px;
-        background: linear-gradient(
-          120deg,
-          rgba(3, 10, 24, 0.92),
-          rgba(10, 48, 86, 0.85)
-        );
-        box-shadow:
-          0 0 25px rgba(10, 60, 110, 0.45),
-          inset 0 0 18px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(74, 222, 255, 0.18);
-        backdrop-filter: blur(12px);
-        font-size: 10px;
-        letter-spacing: 0.16em;
-        color: #cff1ff;
-        text-transform: uppercase;
-      }
-      .hud-brand,
-      .hud-info,
-      .hud-score {
-        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 24px;
+        padding: 16px 22px;
+        border-radius: 18px;
+        background: linear-gradient(125deg, rgba(3, 15, 40, 0.95), rgba(9, 48, 90, 0.78));
+        box-shadow:
+          0 24px 40px rgba(0, 12, 35, 0.65),
+          inset 0 0 24px rgba(16, 84, 190, 0.18);
+        border: 1px solid rgba(120, 210, 255, 0.22);
+        overflow: hidden;
+      }
+      .hud-banner::after {
+        content: "";
+        position: absolute;
+        inset: -40% -60%;
+        background: radial-gradient(circle at 20% 30%, rgba(18, 247, 255, 0.14), transparent 65%);
+        transform: rotate(-8deg);
+        pointer-events: none;
+        filter: blur(12px);
       }
       .hud-brand {
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(7, 26, 52, 0.9);
-        box-shadow: inset 0 0 10px rgba(74, 222, 255, 0.2);
-        border: 1px solid rgba(74, 222, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
-      .hud-brand .brand-title {
-        font-size: 0.85rem;
-        letter-spacing: 0.24em;
-      }
-      .hud-info {
-        justify-self: center;
-        padding: 4px 12px;
-        border-radius: 999px;
-        background: rgba(12, 38, 64, 0.8);
-        border: 1px solid rgba(74, 222, 255, 0.2);
-        box-shadow: inset 0 0 12px rgba(74, 222, 255, 0.22);
-        color: #d4f6ff;
-      }
-      .hud-info .info-label {
-        font-size: 0.7rem;
-        letter-spacing: 0.18em;
-        color: rgba(156, 209, 255, 0.9);
-      }
-      .hud-info .info-value {
-        font-size: 0.75rem;
-        letter-spacing: 0.22em;
-      }
-      .hud-score {
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(7, 26, 52, 0.9);
-        box-shadow: inset 0 0 10px rgba(74, 222, 255, 0.2);
-        border: 1px solid rgba(74, 222, 255, 0.2);
-        justify-content: flex-end;
-      }
-      .hud-score .label {
-        font-size: 0.75rem;
-        color: #8fc5ff;
-      }
-      .hud-score .value {
-        font-size: 0.95rem;
+      .hud-brand .brand-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(18, 247, 255, 0.8), rgba(123, 45, 255, 0.85));
+        box-shadow:
+          0 0 18px rgba(18, 247, 255, 0.6),
+          inset 0 0 18px rgba(4, 12, 38, 0.75);
+        display: grid;
+        place-items: center;
+        color: #010811;
         font-weight: 700;
-        color: #f4fbff;
+        letter-spacing: 0.08em;
+      }
+      .hud-brand .brand-copy {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+      }
+      .hud-brand .brand-name {
+        font-size: 1.1rem;
+        letter-spacing: 0.4em;
+        color: #f2fbff;
+      }
+      .hud-brand .brand-tagline {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4em;
+        color: rgba(180, 225, 255, 0.76);
+      }
+      .hud-stats {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+      }
+      .hud-stats .stat {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 14px;
+        border-radius: 12px;
+        background: rgba(10, 26, 46, 0.7);
+        border: 1px solid rgba(74, 222, 255, 0.16);
+        box-shadow: inset 0 0 16px rgba(12, 50, 102, 0.45);
+        min-width: 110px;
+      }
+      .hud-stats .stat::before {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, rgba(18, 247, 255, 0.08), transparent 60%);
+        pointer-events: none;
+      }
+      .stat-label {
+        font-size: 0.55rem;
+        letter-spacing: 0.36em;
+        text-transform: uppercase;
+        color: rgba(156, 209, 255, 0.8);
+      }
+      .stat-value {
+        font-size: 1.1rem;
+        font-weight: 700;
         letter-spacing: 0.14em;
+        color: #f7fbff;
         font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 10px rgba(74, 222, 255, 0.55);
-        transition: transform 0.2s ease, text-shadow 0.2s ease;
+        text-shadow: 0 0 18px rgba(74, 222, 255, 0.55);
+        transition: transform 0.2s ease, text-shadow 0.25s ease;
       }
-      .hud-score .value.is-updated {
-        animation: hud-pill-pulse 0.4s ease;
-        text-shadow: 0 0 14px rgba(148, 241, 255, 0.8);
+      .stat-value.is-updated {
+        animation: statPulse 0.5s ease;
+        text-shadow: 0 0 28px rgba(148, 241, 255, 0.8);
       }
-      #high-score-display {
-        position: static;
-        top: auto;
-        right: auto;
-        padding: 0;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-        color: inherit;
-        font-size: inherit;
-        text-shadow: inherit;
-      }
-      @keyframes hud-pill-pulse {
+      @keyframes statPulse {
         0% {
           transform: scale(1);
         }
-        40% {
+        30% {
           transform: scale(1.12);
         }
         100% {
           transform: scale(1);
         }
       }
-      .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: linear-gradient(145deg, #4adeff, #9acbff);
-        box-shadow: 0 0 10px rgba(74, 222, 255, 0.8);
-      }
-      .hud-bridge {
+      .hud-status {
         display: flex;
-        justify-content: space-between;
-        padding: 0 24px;
-        pointer-events: none;
+        align-items: center;
+        gap: 12px;
       }
-      .hud-bridge-line {
-        flex: 1;
-        height: 16px;
-        border-left: 1px solid rgba(74, 222, 255, 0.25);
-        border-right: 1px solid rgba(74, 222, 255, 0.25);
-        margin: 0 18px;
-        border-radius: 999px;
-        background: linear-gradient(
-          180deg,
-          rgba(74, 222, 255, 0.1),
-          rgba(74, 222, 255, 0)
-        );
+      .status-dot {
+        position: relative;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #58dfff, #b8faff);
+        box-shadow:
+          0 0 16px rgba(18, 247, 255, 0.9),
+          0 0 32px rgba(18, 247, 255, 0.45);
+      }
+      .status-dot::after {
+        content: "";
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        border: 1px solid rgba(88, 223, 255, 0.35);
+        animation: radar 2.8s linear infinite;
+      }
+      @keyframes radar {
+        0% {
+          transform: scale(0.6);
+          opacity: 0.6;
+        }
+        100% {
+          transform: scale(1.4);
+          opacity: 0;
+        }
+      }
+      .hud-status .status-caption {
+        display: flex;
+        flex-direction: column;
+        text-transform: uppercase;
+        letter-spacing: 0.32em;
+        font-size: 0.55rem;
+        color: rgba(204, 240, 255, 0.8);
       }
       #phaser-container {
         flex: 1;
-        border-radius: 12px;
+        border-radius: 18px;
         overflow: hidden;
-        background: radial-gradient(
-          circle at 20% 20%,
-          rgba(40, 80, 140, 0.2),
-          rgba(5, 8, 20, 0.8)
-        );
+        background: radial-gradient(circle at 20% 20%, rgba(40, 80, 140, 0.2), rgba(5, 8, 20, 0.82));
         position: relative;
         border: 1px solid rgba(12, 126, 167, 0.25);
-        box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.45);
+        box-shadow:
+          inset 0 0 35px rgba(0, 0, 0, 0.45),
+          0 20px 40px rgba(0, 0, 0, 0.35);
       }
 
       #phaser-container canvas {
@@ -235,32 +255,66 @@
       }
 
       .hint {
-        font-size: 9px;
-        text-align: right;
-        opacity: 0.7;
+        font-size: 0.65rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: center;
+        color: rgba(188, 224, 255, 0.6);
+      }
+      @media (max-width: 540px) {
+        .game-wrapper {
+          padding: 16px;
+          border-radius: 0;
+          height: 100%;
+          width: 100%;
+        }
+        .hud-banner {
+          grid-template-columns: 1fr;
+          justify-items: center;
+          gap: 18px;
+          text-align: center;
+        }
+        .hud-brand {
+          flex-direction: column;
+        }
+        .hud-stats {
+          flex-wrap: wrap;
+        }
+        .hud-status {
+          justify-content: center;
+        }
       }
     </style>
   </head>
   <body>
     <div id="app">
       <div class="game-wrapper">
-        <div class="hud-bar">
+        <div class="hud-banner">
           <div class="hud-brand">
+            <span class="brand-icon">BT</span>
+            <div class="brand-copy">
+              <span class="brand-name">BIESYTOWER</span>
+              <span class="brand-tagline">Vertical Playground</span>
+            </div>
+          </div>
+          <div class="hud-stats">
+            <div class="stat">
+              <span class="stat-label">Score</span>
+              <span class="stat-value" id="score-display">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Height</span>
+              <span class="stat-value" id="height-display">0 m</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Highscore</span>
+              <span class="stat-value" id="high-score-display">0</span>
+            </div>
+          </div>
+          <div class="hud-status">
             <span class="status-dot"></span>
-            <span class="brand-title">BIESYTOWER</span>
+            <span class="status-caption">Live Session</span>
           </div>
-          <div class="hud-info">
-            <span class="info-label">Info</span>
-            <span class="info-value">Informatik</span>
-          </div>
-          <div class="hud-score">
-            <span class="label">High</span>
-            <span class="value" id="high-score-display">0</span>
-          </div>
-        </div>
-        <div class="hud-bridge">
-          <span class="hud-bridge-line"></span>
-          <span class="hud-bridge-line"></span>
         </div>
         <div id="phaser-container"></div>
         <div class="hint">
