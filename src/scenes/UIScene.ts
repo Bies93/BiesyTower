@@ -458,6 +458,7 @@ export class UIScene extends Phaser.Scene {
     if (!element) {
       return;
     }
+  }
 
     element.textContent = value;
 
