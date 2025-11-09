@@ -10,22 +10,25 @@ import { UISystem } from "../core/ui/UISystem";
  */
 export class UIScene extends Phaser.Scene {
   private uiSystem!: UISystem;
-  private heightContainer!: Phaser.GameObjects.Container;
-  private scoreContainer!: Phaser.GameObjects.Container;
-  private heightText!: Phaser.GameObjects.Text;
-  private scoreText!: Phaser.GameObjects.Text;
-  private heightLabel!: Phaser.GameObjects.Text;
-  private scoreLabel!: Phaser.GameObjects.Text;
+  private heightContainer?: Phaser.GameObjects.Container;
+  private scoreContainer?: Phaser.GameObjects.Container;
+  private heightText?: Phaser.GameObjects.Text;
+  private scoreText?: Phaser.GameObjects.Text;
+  private heightLabel?: Phaser.GameObjects.Text;
+  private scoreLabel?: Phaser.GameObjects.Text;
   private currentHeight: number = 0;
   private currentScore: number = 0;
   private highScore: number = 0;
   private highScoreDisplayEl?: HTMLElement;
+  private domHeightValue?: HTMLElement;
+  private domScoreValue?: HTMLElement;
+  private readonly numberFormatter = new Intl.NumberFormat("de-DE");
   private scoreBurstContainer!: Phaser.GameObjects.Container;
-  private hudFrame!: Phaser.GameObjects.Graphics;
-  private connectorGraphic!: Phaser.GameObjects.Graphics;
-  private hudBackdrop!: Phaser.GameObjects.Graphics;
-  private heightIcon!: Phaser.GameObjects.Rectangle;
-  private scoreIcon!: Phaser.GameObjects.Star;
+  private hudFrame?: Phaser.GameObjects.Graphics;
+  private connectorGraphic?: Phaser.GameObjects.Graphics;
+  private hudBackdrop?: Phaser.GameObjects.Graphics;
+  private heightIcon?: Phaser.GameObjects.Rectangle;
+  private scoreIcon?: Phaser.GameObjects.Rectangle;
   private comboContainer!: Phaser.GameObjects.Container;
   private comboText!: Phaser.GameObjects.Text;
   private comboMultiplierText!: Phaser.GameObjects.Text;
@@ -40,6 +43,16 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
+
+    const scoreValueElement = document.getElementById("hud-score-value");
+    if (scoreValueElement instanceof HTMLElement) {
+      this.domScoreValue = scoreValueElement;
+    }
+
+    const heightValueElement = document.getElementById("hud-height-value");
+    if (heightValueElement instanceof HTMLElement) {
+      this.domHeightValue = heightValueElement;
+    }
 
     const highScoreElement = document.getElementById("high-score-display");
     if (highScoreElement instanceof HTMLElement) {
@@ -57,16 +70,13 @@ export class UIScene extends Phaser.Scene {
     } catch (error) {
       // Access to localStorage can fail in privacy modes; ignore gracefully
     }
+    this.updateDomHeight(false);
+    this.updateDomScore(false);
     this.updateHighScoreDisplay();
 
     this.createHUDBackdrop();
-    // Create HUD panels
-    this.createHUDPanels();
-    
-    // Create animated counters
-    this.createCounters();
     this.createHUDDecorations();
-    
+
     // Create score burst effect
     this.createScoreBurstContainer();
     this.createComboIndicator();
@@ -91,13 +101,17 @@ export class UIScene extends Phaser.Scene {
 
   private createHUDBackdrop(): void {
     const { width } = this.scale;
-    this.hudBackdrop = this.add.graphics().setDepth(50);
-    this.hudBackdrop.fillStyle(0x071225, 0.55);
-    // schlanker Streifen direkt am oberen Rand des Canvas
-    this.hudBackdrop.fillRoundedRect(16, 12, width - 32, 56, 16);
-    this.hudBackdrop.lineStyle(1, 0x102339, 0.85);
-    this.hudBackdrop.strokeRoundedRect(16, 12, width - 32, 56, 16);
+    this.hudBackdrop = this.add.graphics().setDepth(20);
     this.hudBackdrop.setScrollFactor(0);
+
+    this.hudBackdrop.fillStyle(0x041225, 0.55);
+    this.hudBackdrop.fillRoundedRect(18, 16, width - 36, 68, 22);
+
+    this.hudBackdrop.lineStyle(1.5, 0x1f6cff, 0.26);
+    this.hudBackdrop.strokeRoundedRect(18, 16, width - 36, 68, 22);
+
+    this.hudBackdrop.lineStyle(1, 0x67e5ff, 0.18);
+    this.hudBackdrop.strokeRoundedRect(26, 24, width - 52, 52, 18);
   }
 
   private createHUDPanels(): void {
@@ -179,27 +193,31 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createHUDDecorations(): void {
-    this.hudFrame = this.add.graphics().setDepth(0.4);
-    this.connectorGraphic = this.add.graphics().setDepth(0.35);
+    const { width } = this.scale;
+    this.hudFrame = this.add.graphics().setDepth(24).setScrollFactor(0);
+    this.connectorGraphic = this.add.graphics().setDepth(23).setScrollFactor(0);
     this.redrawHUDFrame(0);
 
-    // Iconography to anchor panels
+    const accentY = 68;
     this.heightIcon = this.add
-      .rectangle(58, 60, 12, 12, 0x4adeff, 0.5)
-      .setDepth(0.5)
-      .setAngle(45)
-      .setStrokeStyle(2, 0xffffff, 0.4);
-
+      .rectangle(width / 2 - 78, accentY, 72, 3, 0x4adeff, 0.55)
+      .setDepth(25)
+      .setScrollFactor(0);
     this.scoreIcon = this.add
-      .star(this.scale.width - 58, 60, 5, 4, 9, 0x9acbff, 0.45)
-      .setDepth(0.5)
-      .setStrokeStyle(1, 0xffffff, 0.35);
+      .rectangle(width / 2 + 78, accentY, 72, 3, 0xff8dd9, 0.5)
+      .setDepth(25)
+      .setScrollFactor(0);
 
+    this.heightIcon.setOrigin(0.5);
+    this.scoreIcon.setOrigin(0.5);
     this.heightIcon.setBlendMode(Phaser.BlendModes.ADD);
     this.scoreIcon.setBlendMode(Phaser.BlendModes.ADD);
   }
 
   private redrawHUDFrame(progress: number): void {
+    if (!this.hudFrame || !this.connectorGraphic) {
+      return;
+    }
     const { width } = this.scale;
     const accent = Phaser.Display.Color.Interpolate.ColorWithColor(
       Phaser.Display.Color.ValueToColor(0x1c3c5b),
@@ -210,23 +228,58 @@ export class UIScene extends Phaser.Scene {
     const accentColor = Phaser.Display.Color.GetColor(accent.r, accent.g, accent.b);
 
     this.hudFrame.clear();
-    this.hudFrame.fillStyle(0x01040b, 0.22);
-    this.hudFrame.fillRoundedRect(30, 18, width - 60, 96, 24);
-    this.hudFrame.lineStyle(2, accentColor, 0.28 + progress * 0.2);
-    this.hudFrame.strokeRoundedRect(30, 18, width - 60, 96, 24);
+    this.hudFrame.fillStyle(0x010713, 0.24 + progress * 0.2);
+    this.hudFrame.fillRoundedRect(22, 20, width - 44, 62, 20);
+    this.hudFrame.lineStyle(1.6, accentColor, 0.28 + progress * 0.32);
+    this.hudFrame.strokeRoundedRect(22, 20, width - 44, 62, 20);
+    this.hudFrame.fillStyle(accentColor, 0.08 + progress * 0.12);
+    this.hudFrame.fillEllipse(width / 2, 50, width * 0.42, 44);
 
     this.connectorGraphic.clear();
-    this.connectorGraphic.lineStyle(1, accentColor, 0.35 + progress * 0.2);
+    this.connectorGraphic.lineStyle(1.2, accentColor, 0.22 + progress * 0.25);
     this.connectorGraphic.beginPath();
-    this.connectorGraphic.moveTo(58, 92);
-    this.connectorGraphic.lineTo(58, 140);
-    this.connectorGraphic.moveTo(width - 58, 92);
-    this.connectorGraphic.lineTo(width - 58, 140);
+    const span = width / 2 - 120;
+    this.connectorGraphic.moveTo(span, 78);
+    this.connectorGraphic.lineTo(span, 116);
+    this.connectorGraphic.moveTo(width - span, 78);
+    this.connectorGraphic.lineTo(width - span, 116);
     this.connectorGraphic.strokePath();
   }
 
   private createScoreBurstContainer(): void {
     this.scoreBurstContainer = this.add.container(0, 0);
+  }
+
+  private updateDomHeight(pulse = true): void {
+    const formatted = `${this.numberFormatter.format(this.currentHeight)} m`;
+    this.updateDomMetric(this.domHeightValue, formatted, pulse);
+  }
+
+  private updateDomScore(pulse = true): void {
+    const formatted = this.numberFormatter.format(this.currentScore);
+    this.updateDomMetric(this.domScoreValue, formatted, pulse);
+  }
+
+  private updateDomMetric(
+    element: HTMLElement | undefined,
+    value: string,
+    pulse = true
+  ): void {
+    if (!element) {
+      return;
+    }
+
+    if (element.textContent !== value) {
+      element.textContent = value;
+    }
+
+    if (pulse) {
+      element.classList.remove("is-updated");
+      void element.offsetWidth;
+      element.classList.add("is-updated");
+    } else {
+      element.classList.remove("is-updated");
+    }
   }
 
   private createComboIndicator(): void {
@@ -262,6 +315,7 @@ export class UIScene extends Phaser.Scene {
       return;
     }
     this.currentHeight = newHeight;
+    this.updateDomHeight();
     this.updateHeightDisplay();
 
     if (newHeight > 0 && newHeight % 100 === 0) {
@@ -275,6 +329,7 @@ export class UIScene extends Phaser.Scene {
     }
     const delta = score - this.currentScore;
     this.currentScore = score;
+    this.updateDomScore(delta !== 0);
     this.updateScoreDisplay(delta);
     if (this.currentScore > this.highScore) {
       this.highScore = this.currentScore;
@@ -346,55 +401,62 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateHeightDisplay(): void {
-    // Animate text change
-    this.tweens.add({
-      targets: this.heightText,
-      scaleX: 1.2,
-      scaleY: 1.2,
-      duration: 150,
-      yoyo: true,
-      ease: "Power2"
-    });
-    
-    this.heightText.setText(this.currentHeight.toString());
-    
-    // Add spark effect
-    const heightBounds = this.heightText.getBounds();
-    this.createNumberSpark(heightBounds.centerX, heightBounds.centerY);
+    let sparkX = this.scale.width / 2 - 80;
+    let sparkY = 60;
+
+    if (this.heightText) {
+      // Animate text change
+      this.tweens.add({
+        targets: this.heightText,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        duration: 150,
+        yoyo: true,
+        ease: "Power2"
+      });
+
+      this.heightText.setText(this.currentHeight.toString());
+
+      const heightBounds = this.heightText.getBounds();
+      sparkX = heightBounds.centerX;
+      sparkY = heightBounds.centerY;
+    }
+
+    // Add spark effect near header metrics
+    this.createNumberSpark(sparkX, sparkY);
   }
 
   private updateScoreDisplay(delta = 0): void {
-    // Animate text change
-    this.tweens.add({
-      targets: this.scoreText,
-      scaleX: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
-      scaleY: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
-      duration: 200,
-      yoyo: true,
-      ease: "Power2"
-    });
+    if (this.scoreText) {
+      // Animate text change
+      this.tweens.add({
+        targets: this.scoreText,
+        scaleX: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
+        scaleY: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
+        duration: 200,
+        yoyo: true,
+        ease: "Power2"
+      });
 
-    this.scoreText.setText(this.currentScore.toString());
+      this.scoreText.setText(this.currentScore.toString());
+    }
   }
 
   private updateHighScoreDisplay(pulse = false): void {
-    if (!this.highScoreDisplayEl) {
-      return;
-    }
-
-    this.highScoreDisplayEl.textContent = this.highScore.toString();
-
-    if (pulse) {
-      this.highScoreDisplayEl.classList.remove("is-updated");
-      // Force reflow so the animation can restart when the class is re-added
-      void this.highScoreDisplayEl.offsetWidth;
-      this.highScoreDisplayEl.classList.add("is-updated");
-    }
+    const formatted = this.numberFormatter.format(this.highScore);
+    this.updateDomMetric(this.highScoreDisplayEl, formatted, pulse);
   }
 
   private createScoreBurst(): void {
-    const { centerX: burstX, centerY: burstY } = this.scoreText.getBounds();
-    
+    let burstX = this.scale.width / 2 + 60;
+    let burstY = 64;
+
+    if (this.scoreText) {
+      const bounds = this.scoreText.getBounds();
+      burstX = bounds.centerX;
+      burstY = bounds.centerY;
+    }
+
     // Create multiple particles
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Phaser.Math.PI2;
@@ -437,7 +499,7 @@ export class UIScene extends Phaser.Scene {
   private onHeightProgress(payload: { progress: number }): void {
     const progress = Phaser.Math.Clamp(payload?.progress ?? 0, 0, 1);
     this.redrawHUDFrame(progress);
-    this.hudBackdrop.setAlpha(0.45 + progress * 0.25);
+    this.hudBackdrop?.setAlpha(0.45 + progress * 0.25);
     const heightColor = Phaser.Display.Color.Interpolate.ColorWithColor(
       Phaser.Display.Color.ValueToColor(0x4adeff),
       Phaser.Display.Color.ValueToColor(0xfff3c1),
@@ -450,17 +512,17 @@ export class UIScene extends Phaser.Scene {
       100,
       progress * 100
     );
-    this.heightIcon.setFillStyle(
+    this.heightIcon?.setFillStyle(
       Phaser.Display.Color.GetColor(heightColor.r, heightColor.g, heightColor.b),
       0.45 + progress * 0.3
     );
-    this.scoreIcon.setFillStyle(
+    this.scoreIcon?.setFillStyle(
       Phaser.Display.Color.GetColor(scoreColor.r, scoreColor.g, scoreColor.b),
       0.4 + progress * 0.25
     );
     const panelAlpha = 0.78 + progress * 0.15;
-    this.heightContainer.setAlpha(panelAlpha);
-    this.scoreContainer.setAlpha(panelAlpha);
+    this.heightContainer?.setAlpha(panelAlpha);
+    this.scoreContainer?.setAlpha(panelAlpha);
   }
 
   private showMilestoneToast(height: number, bonus: number): void {
@@ -529,14 +591,20 @@ export class UIScene extends Phaser.Scene {
   public showGameOver(finalScore: number, finalHeight: number): void {
     // Create game over overlay
     const { width, height } = this.scale;
-    
+
     // Fade out HUD temporarily
-    this.tweens.add({
-      targets: [this.heightContainer, this.scoreContainer],
-      alpha: 0.3,
-      duration: 500
-    });
-    
+    const fadeTargets = [this.heightContainer, this.scoreContainer].filter(
+      (target): target is Phaser.GameObjects.GameObject => Boolean(target)
+    );
+
+    if (fadeTargets.length > 0) {
+      this.tweens.add({
+        targets: fadeTargets,
+        alpha: 0.3,
+        duration: 500
+      });
+    }
+
     // Show final stats
     this.createFinalStats(finalScore, finalHeight);
   }

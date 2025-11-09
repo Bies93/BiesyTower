@@ -18,6 +18,9 @@ export class UISceneEnhanced extends Phaser.Scene {
   private scoreLabel!: Phaser.GameObjects.Text;
   private currentHeight: number = 0;
   private currentScore: number = 0;
+  private domHeightValue?: HTMLElement;
+  private domScoreValue?: HTMLElement;
+  private readonly numberFormatter = new Intl.NumberFormat("de-DE");
   private scoreBurstContainer!: Phaser.GameObjects.Container;
 
   constructor() {
@@ -27,6 +30,19 @@ export class UISceneEnhanced extends Phaser.Scene {
   create(): void {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
+
+    const scoreValueElement = document.getElementById("hud-score-value");
+    if (scoreValueElement instanceof HTMLElement) {
+      this.domScoreValue = scoreValueElement;
+    }
+
+    const heightValueElement = document.getElementById("hud-height-value");
+    if (heightValueElement instanceof HTMLElement) {
+      this.domHeightValue = heightValueElement;
+    }
+
+    this.updateDomHeight(false);
+    this.updateDomScore(false);
 
     // Create HUD panels
     this.createHUDPanels();
@@ -125,10 +141,42 @@ export class UISceneEnhanced extends Phaser.Scene {
     this.scoreBurstContainer = this.add.container(0, 0);
   }
 
+  private updateDomHeight(pulse = true): void {
+    const formatted = `${this.numberFormatter.format(this.currentHeight)} m`;
+    this.updateDomMetric(this.domHeightValue, formatted, pulse);
+  }
+
+  private updateDomScore(pulse = true): void {
+    const formatted = this.numberFormatter.format(this.currentScore);
+    this.updateDomMetric(this.domScoreValue, formatted, pulse);
+  }
+
+  private updateDomMetric(
+    element: HTMLElement | undefined,
+    value: string,
+    pulse = true
+  ): void {
+    if (!element) {
+      return;
+    }
+
+    if (element.textContent !== value) {
+      element.textContent = value;
+    }
+
+    if (pulse) {
+      element.classList.remove("is-updated");
+      void element.offsetWidth;
+      element.classList.add("is-updated");
+    } else {
+      element.classList.remove("is-updated");
+    }
+  }
+
   private onHeightUpdate(height: number): void {
     const newHeight = Math.floor(height);
     const newScore = Math.floor(height * 10);
-    
+
     // Only update if values changed
     if (newHeight !== this.currentHeight) {
       this.currentHeight = newHeight;
@@ -144,11 +192,8 @@ export class UISceneEnhanced extends Phaser.Scene {
       }
     }
 
-    // Update DOM element if it exists
-    const scoreElement = document.getElementById("high-score-display");
-    if (scoreElement) {
-      scoreElement.textContent = this.currentScore.toString();
-    }
+    this.updateDomHeight();
+    this.updateDomScore();
   }
 
   private updateHeightDisplay(): void {
