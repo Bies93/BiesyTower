@@ -96,30 +96,55 @@ export class UIScene extends Phaser.Scene {
   private createMinimalUI(): void {
     const { width } = this.scale;
 
-    // Create simple text displays for height and score
-    this.heightValue = this.add.text(20, 20, "0 m", {
-      fontFamily: "'Segoe UI', sans-serif",
-      fontSize: "18px",
-      color: "#4adeff",
-      stroke: "#000000",
-      strokeThickness: 2
-    }).setDepth(50).setScrollFactor(0);
-
-    this.scoreValue = this.add.text(width - 100, 20, "0", {
-      fontFamily: "'Segoe UI', sans-serif",
-      fontSize: "18px",
-      color: "#6be8ff",
-      stroke: "#000000",
-      strokeThickness: 2
-    }).setDepth(50).setScrollFactor(0).setOrigin(1, 0);
-
-    this.highScoreValue = this.add.text(width / 2, 20, "HIGH: 0", {
+    // Create semi-transparent backgrounds for UI elements
+    const uiAlpha = 0.75;
+    const uiPadding = 12;
+    const uiCornerRadius = 8;
+    
+    // Height display (top-left)
+    this.heightBackground = this.add.rectangle(uiPadding + 60, uiPadding + 15, 120, 30, 0x04122a, uiAlpha)
+      .setStrokeStyle(1, 0x4adeff, 0.6)
+      .setOrigin(0.5, 0.5)
+      .setDepth(49)
+      .setScrollFactor(0);
+    
+    this.heightValue = this.add.text(uiPadding + 60, uiPadding + 15, "0 m", {
       fontFamily: "'Segoe UI', sans-serif",
       fontSize: "16px",
+      color: "#4adeff",
+      stroke: "#000000",
+      strokeThickness: 1
+    }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
+
+    // Score display (top-right)
+    this.scoreBackground = this.add.rectangle(width - uiPadding - 60, uiPadding + 15, 120, 30, 0x04122a, uiAlpha)
+      .setStrokeStyle(1, 0x6be8ff, 0.6)
+      .setOrigin(0.5, 0.5)
+      .setDepth(49)
+      .setScrollFactor(0);
+    
+    this.scoreValue = this.add.text(width - uiPadding - 60, uiPadding + 15, "0", {
+      fontFamily: "'Segoe UI', sans-serif",
+      fontSize: "16px",
+      color: "#6be8ff",
+      stroke: "#000000",
+      strokeThickness: 1
+    }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
+
+    // High score display (top-center)
+    this.highBackground = this.add.rectangle(width / 2, uiPadding + 15, 140, 30, 0x132b4d, uiAlpha)
+      .setStrokeStyle(1, 0xff9cf7, 0.6)
+      .setOrigin(0.5, 0.5)
+      .setDepth(49)
+      .setScrollFactor(0);
+    
+    this.highScoreValue = this.add.text(width / 2, uiPadding + 15, "HIGH: 0", {
+      fontFamily: "'Segoe UI', sans-serif",
+      fontSize: "14px",
       color: "#ff9cf7",
       stroke: "#000000",
-      strokeThickness: 2
-    }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0);
+      strokeThickness: 1
+    }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
 
     this.updateHighScoreDisplay();
   }

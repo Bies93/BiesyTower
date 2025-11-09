@@ -47,12 +47,12 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.physics.world.setBounds(0, -Infinity, width, Infinity);
 
-    // Start deutlich weiter unten: Spieler näher am unteren Rand platzieren
-    const startPlayerY = height - 100;
+    // Start sehr nah am unteren Rand: Spieler sehr tief platzieren
+    const startPlayerY = height - 25;
     this.player = createPlayerStub(this, width / 2, startPlayerY);
     this.startY = this.player.y;
 
-    // Plattformen direkt von ganz unten aus generieren lassen
+    // Plattformen direkt von ganz unten aus generieren lassen (neue Startposition)
     this.platformManager = createPlatformManagerStub(this);
     this.platformManager.initialize(this.startY);
 
@@ -70,14 +70,19 @@ export class GameScene extends Phaser.Scene {
       this
     );
 
-    // Kamera: Start in der Mitte des Bildschirms, dann weich mitziehen
+    // Kamera: Start an fixierter niedriger Position, dann sanft zum Spieler übergehen
     const cam = this.cameras.main;
     cam.setZoom(1); // Standardzoom beibehalten, Fokus auf Spielfläche
-    cam.setLerp(0.1, 0.1); // Ausgewogene horizontale und vertikale Nachführung
-    cam.startFollow(this.player, false, cam.lerp.x, cam.lerp.y);
+    cam.setScroll(0, height - 200); // Start an fixierter niedriger Position
+    cam.setLerp(0.08, 0.08); // Sanftere Nachführung für Übergang
     cam.roundPixels = true;
     cam.setBackgroundColor(baseGameConfig.colors.background);
     cam.fadeIn(250, 0, 0, 0);
+    
+    // Verzögertes Starten des Camera Follow für sanften Übergang
+    this.time.delayedCall(2000, () => {
+      cam.startFollow(this.player, false, cam.lerp.x, cam.lerp.y);
+    });
 
     this.currentHeight = 0;
     this.game.events.emit("heightUpdate", this.currentHeight);
