@@ -145,7 +145,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     // Update DOM element if it exists
-    const scoreElement = document.getElementById("score-display");
+    const scoreElement = document.getElementById("high-score-display");
     if (scoreElement) {
       scoreElement.textContent = this.currentScore.toString();
     }

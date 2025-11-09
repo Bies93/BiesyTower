@@ -14,6 +14,11 @@
         margin: 0;
         padding: 0;
       }
+      :root {
+        --hud-accent: rgba(74, 222, 255, 0.72);
+        --hud-accent-soft: rgba(74, 222, 255, 0.18);
+        --hud-pill-border: rgba(74, 222, 255, 0.45);
+      }
       html,
       body {
         width: 100%;
@@ -61,59 +66,184 @@
         box-shadow: 0 0 30px rgba(74, 222, 255, 0.15);
       }
       .hud-bar {
+        --hud-accent: rgba(74, 222, 255, 0.72);
+        --hud-accent-soft: rgba(74, 222, 255, 0.18);
+        --hud-pill-border: rgba(74, 222, 255, 0.45);
         display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
         justify-content: space-between;
-        align-items: center;
         gap: 12px;
-        padding: 4px 8px;
-        border-radius: 999px;
-        background: rgba(3, 10, 24, 0.7);
-        box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(10px);
-        font-size: 10px;
-        letter-spacing: 0.16em;
-        color: #cff1ff;
+        padding: 10px 14px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(4, 17, 34, 0.92), rgba(2, 8, 22, 0.9));
+        border: 1px solid rgba(74, 222, 255, 0.18);
+        box-shadow:
+          0 16px 40px rgba(0, 0, 0, 0.45),
+          inset 0 0 24px rgba(4, 60, 92, 0.28);
+        backdrop-filter: blur(12px);
+        position: relative;
+        overflow: hidden;
+      }
+      .hud-bar::after {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: 20px;
+        border: 1px solid rgba(74, 222, 255, 0.08);
+        box-shadow: inset 0 0 30px var(--hud-accent-soft);
+        pointer-events: none;
+      }
+      .hud-bar.is-dimmed {
+        opacity: 0.35;
+        transition: opacity 0.4s ease;
       }
       .hud-pill {
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: rgba(3, 13, 32, 0.9);
-        display: inline-flex;
-        align-items: center;
+        flex: 1 1 clamp(120px, 30%, 180px);
+        min-height: 64px;
+        padding: 10px 14px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(3, 13, 32, 0.92), rgba(2, 9, 24, 0.88));
+        border: 1px solid var(--hud-pill-border);
+        box-shadow:
+          inset 0 0 18px rgba(74, 222, 255, 0.1),
+          0 6px 22px rgba(0, 0, 0, 0.35);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         gap: 4px;
-        box-shadow: inset 0 0 8px rgba(74, 222, 255, 0.15);
-        border: 1px solid rgba(74, 222, 255, 0.25);
         text-transform: uppercase;
+        letter-spacing: 0.22em;
+        position: relative;
+        overflow: hidden;
+      }
+      .hud-pill::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 55%);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+      .hud-pill.is-updated::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        box-shadow: 0 0 24px var(--hud-accent);
+        opacity: 0.8;
+        pointer-events: none;
+        animation: hud-pill-glow 0.6s ease;
       }
       .hud-pill .label {
-        font-size: 0.75rem;
-        color: #8fc5ff;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: rgba(159, 212, 255, 0.85);
+        letter-spacing: 0.3em;
+      }
+      .hud-pill .value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #f4fbff;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.18em;
+        text-shadow: 0 0 16px rgba(74, 222, 255, 0.65);
+        --pulse-scale: 1.16;
+      }
+      .hud-pill .value.is-updated {
+        animation: hud-pill-pulse 0.45s ease;
+      }
+      .hud-pill .unit {
+        font-size: 0.65rem;
+        letter-spacing: 0.26em;
+        color: rgba(159, 212, 255, 0.6);
+      }
+      .hud-pill--status {
+        flex: 1 1 160px;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding-right: 22px;
+      }
+      .hud-pill--stat {
+        align-items: flex-start;
+      }
+      .hud-pill__stack {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .hud-pill__stack .eyebrow {
+        font-size: 0.64rem;
+        letter-spacing: 0.32em;
+        color: rgba(159, 212, 255, 0.7);
+      }
+      .hud-pill--highlight {
+        background: linear-gradient(160deg, rgba(74, 222, 255, 0.26), rgba(2, 9, 22, 0.85));
+        border-color: rgba(148, 241, 255, 0.6);
+        box-shadow:
+          inset 0 0 28px rgba(74, 222, 255, 0.18),
+          0 6px 24px rgba(0, 0, 0, 0.35);
+      }
+      .hud-pill--highlight .value {
+        color: #ffffff;
+        text-shadow: 0 0 22px rgba(148, 241, 255, 0.85);
       }
       .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: linear-gradient(145deg, #4adeff, #9acbff);
-        box-shadow: 0 0 10px rgba(74, 222, 255, 0.8);
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(148, 241, 255, 1) 0%, rgba(74, 222, 255, 0.7) 55%, transparent 70%);
+        box-shadow: 0 0 12px rgba(148, 241, 255, 0.85);
+        animation: status-pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes hud-pill-pulse {
+        0% {
+          transform: scale(1);
+        }
+        35% {
+          transform: scale(var(--pulse-scale, 1.16));
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes hud-pill-glow {
+        0% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes status-pulse {
+        0%,
+        100% {
+          opacity: 0.75;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
       }
       .hud-bridge {
         display: flex;
         justify-content: space-between;
-        padding: 0 24px;
+        padding: 4px 26px 0;
         pointer-events: none;
       }
       .hud-bridge-line {
         flex: 1;
-        height: 16px;
-        border-left: 1px solid rgba(74, 222, 255, 0.25);
-        border-right: 1px solid rgba(74, 222, 255, 0.25);
+        height: 14px;
+        border-left: 1px solid rgba(74, 222, 255, 0.22);
+        border-right: 1px solid rgba(74, 222, 255, 0.22);
         margin: 0 18px;
         border-radius: 999px;
-        background: linear-gradient(
-          180deg,
-          rgba(74, 222, 255, 0.1),
-          rgba(74, 222, 255, 0)
-        );
+        background: linear-gradient(180deg, var(--hud-accent-soft), rgba(74, 222, 255, 0));
+        opacity: 0.8;
       }
       #phaser-container {
         flex: 1;
@@ -168,13 +298,25 @@
     <div id="app">
       <div class="game-wrapper">
         <div class="hud-bar">
-          <div class="hud-pill">
+          <div class="hud-pill hud-pill--status">
             <span class="status-dot"></span>
-            <span>BIESYTOWER | PRE-ALPHA</span>
+            <div class="hud-pill__stack">
+              <span class="eyebrow">BIESYTOWER</span>
+              <span class="eyebrow">PRE-ALPHA</span>
+            </div>
           </div>
-          <div class="hud-pill">
-            <span class="label">Score</span>
-            <span id="score-display">0</span>
+          <div class="hud-pill hud-pill--stat" id="hud-height-pill">
+            <span class="label">HEIGHT</span>
+            <span class="value" id="hud-height-value">0</span>
+            <span class="unit">M</span>
+          </div>
+          <div class="hud-pill hud-pill--stat" id="hud-score-pill">
+            <span class="label">SCORE</span>
+            <span class="value" id="hud-score-value">0</span>
+          </div>
+          <div class="hud-pill hud-pill--highlight" id="hud-high-pill">
+            <span class="label">HIGH</span>
+            <span class="value" id="high-score-display">0</span>
           </div>
         </div>
         <div class="hud-bridge">

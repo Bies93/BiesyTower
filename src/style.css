@@ -132,23 +132,22 @@ canvas {
 }
 
 /* Score Display (DOM Integration) */
-#score-display {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--biesy-glass-bg);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--biesy-glass-border);
-  border-radius: var(--biesy-radius-md);
-  padding: 12px 20px;
-  color: var(--biesy-text-primary);
-  font-weight: 600;
-  font-size: 1.1rem;
-  text-shadow: 0 0 12px rgba(18, 247, 255, 0.35);
-  box-shadow: var(--biesy-shadow-soft);
-  z-index: 100;
-  pointer-events: none;
-  transform: translateZ(0);
+#high-score-display {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 4ch;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: inherit;
+  font-weight: 700;
+  font-size: inherit;
+  text-shadow: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 /* High DPI Display Optimizations */
@@ -173,13 +172,10 @@ canvas {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-  #score-display {
-    top: 10px;
-    right: 10px;
-    padding: 8px 16px;
-    font-size: 1rem;
+  #high-score-display {
+    font-size: inherit;
   }
-  
+
   canvas {
     border-radius: 0;
   }
