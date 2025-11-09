@@ -1,14 +1,6 @@
 import Phaser from "phaser";
-import { IMAGE_KEYS } from "../../assets/assetManifest";
-
-export type PlatformType =
-  | "normal"
-  | "wide"
-  | "narrow"
-  | "ice"
-  | "boost"
-  | "conveyorRight"
-  | "crumble";
+import { PlatformTextureFactory } from "./PlatformTextureFactory";
+import { PlatformType } from "./platformTypes";
 
 export interface Platform {
   sprite: Phaser.Types.Physics.Arcade.ImageWithStaticBody;
@@ -18,7 +10,6 @@ export interface Platform {
 }
 
 type PlatformVisualConfig = {
-  texture: string;
   widthMultiplier: number;
   height: number;
   alpha?: number;
@@ -26,18 +17,17 @@ type PlatformVisualConfig = {
 };
 
 const PLATFORM_CONFIG: Record<PlatformType, PlatformVisualConfig> = {
-  normal: { texture: IMAGE_KEYS.platformBase, widthMultiplier: 1, height: 24 },
-  wide: { texture: IMAGE_KEYS.platformBase, widthMultiplier: 1.35, height: 24 },
-  narrow: { texture: IMAGE_KEYS.platformNarrow, widthMultiplier: 0.8, height: 26 },
-  ice: { texture: IMAGE_KEYS.platformIce, widthMultiplier: 1.05, height: 24, alpha: 0.95 },
+  normal: { widthMultiplier: 1, height: 24 },
+  wide: { widthMultiplier: 1.35, height: 24 },
+  narrow: { widthMultiplier: 0.8, height: 26 },
+  ice: { widthMultiplier: 1.05, height: 24, alpha: 0.95 },
   boost: {
-    texture: IMAGE_KEYS.platformBoost,
     widthMultiplier: 1.05,
     height: 24,
     blendMode: Phaser.BlendModes.ADD,
   },
-  conveyorRight: { texture: IMAGE_KEYS.platformConveyorRight, widthMultiplier: 1.1, height: 24 },
-  crumble: { texture: IMAGE_KEYS.platformCrumble, widthMultiplier: 1, height: 22 },
+  conveyorRight: { widthMultiplier: 1.1, height: 24 },
+  crumble: { widthMultiplier: 1, height: 22 },
 };
 
 type PlatformPhase = {
@@ -105,11 +95,13 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   private readonly safePlatformCount = 5;
   private readonly safeSpacing = 90;
   private activePattern: { pattern: PlatformPattern; index: number } | null = null;
+  private readonly textureFactory: PlatformTextureFactory;
 
   constructor(scene: Phaser.Scene) {
     super();
     this.scene = scene;
     this.platformsGroup = this.scene.physics.add.staticGroup();
+    this.textureFactory = new PlatformTextureFactory(scene);
   }
 
   public initialize(startY: number): void {
@@ -417,7 +409,8 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     const config = PLATFORM_CONFIG[type];
     const actualWidth = width * config.widthMultiplier;
 
-    const platform = this.scene.physics.add.staticImage(x, y, config.texture);
+    const textureKey = this.textureFactory.getTextureKey(type, actualWidth, config.height);
+    const platform = this.scene.physics.add.staticImage(x, y, textureKey);
     platform
       .setOrigin(0.5, 0.5)
       .setDisplaySize(actualWidth, config.height)
@@ -425,13 +418,21 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
       .setDepth(2);
 
     platform.setBlendMode(config.blendMode ?? Phaser.BlendModes.NORMAL);
+    
+    // Enhanced collision box alignment
     const body = platform.body as Phaser.Physics.Arcade.StaticBody;
     body.checkCollision.down = false;
     body.checkCollision.left = true;
     body.checkCollision.right = true;
+    body.setSize(actualWidth, config.height * 0.9);
+    body.setOffset(0, config.height * 0.05);
+    
     platform.setData("platformType", type);
     platform.refreshBody();
     this.platformsGroup.add(platform);
+
+    // Add visual enhancements for special platform types
+    this.addPlatformVisualEffects(platform, type, textureKey);
 
     return {
       sprite: platform,
@@ -439,6 +440,69 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
       width: actualWidth,
       type,
     };
+  }
+
+  private addPlatformVisualEffects(
+    platform: Phaser.Types.Physics.Arcade.ImageWithStaticBody,
+    type: PlatformType,
+    textureKey: string
+  ): void {
+    const { x, y } = platform;
+    const glowAlpha = type === "normal" ? 0.12 : 0.26;
+    const glow = this.scene.add
+      .image(x, y, textureKey)
+      .setDisplaySize(platform.displayWidth * 1.05, platform.displayHeight * 1.18)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setAlpha(glowAlpha)
+      .setDepth(1);
+
+    this.scene.tweens.add({
+      targets: glow,
+      alpha: { from: glowAlpha * 0.7, to: glowAlpha * 1.3 },
+      scaleX: { from: 1.02, to: 1.06 },
+      duration: 1600,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    platform.once(Phaser.GameObjects.Events.DESTROY, () => glow.destroy());
+
+    if (type === "boost" || type === "conveyorRight" || type === "ice") {
+      this.createPlatformParticles(platform, type);
+    }
+  }
+
+  private createPlatformParticles(platform: Phaser.Types.Physics.Arcade.ImageWithStaticBody, type: PlatformType): void {
+    const { x, y } = platform;
+    const particleCount = type === "boost" ? 4 : 3;
+    const particleColor = type === "boost" ? 0x4adeff : 0xffaa44;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const offsetX = (Math.random() - 0.5) * platform.displayWidth;
+      const offsetY = -platform.displayHeight * 0.3;
+      const particle = this.scene.add
+        .circle(x + offsetX, y + offsetY, 1.5, particleColor, 0.6)
+        .setDepth(1);
+      
+      const moveDistance = 20 + Math.random() * 20;
+      const duration = 1500 + Math.random() * 1000;
+      
+      this.scene.tweens.add({
+        targets: particle,
+        y: y + offsetY - moveDistance,
+        alpha: 0,
+        scaleX: 2,
+        scaleY: 2,
+        duration: duration,
+        repeat: -1,
+        ease: "Power2",
+        delay: i * 200,
+        onComplete: () => particle.destroy(),
+      });
+
+      platform.once(Phaser.GameObjects.Events.DESTROY, () => particle.destroy());
+    }
   }
 
   private cleanupOldPlatforms(maxY: number): void {

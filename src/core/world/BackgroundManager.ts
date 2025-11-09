@@ -12,6 +12,8 @@ type LayerConfig = {
 export class BackgroundManager {
   private layers: { sprite: Phaser.GameObjects.TileSprite; factor: number }[] = [];
   private props: Phaser.GameObjects.Image[] = [];
+  private gradientOverlay?: Phaser.GameObjects.Graphics;
+  private lightColumns: Phaser.GameObjects.Rectangle[] = [];
 
   constructor(private scene: Phaser.Scene) {}
 
@@ -25,12 +27,28 @@ export class BackgroundManager {
 
     configs.forEach((config) => this.createLayer(config, width, height));
     this.createProps(width, height);
+    this.createGradientOverlay(width, height);
+    this.createLightColumns(width, height);
   }
 
-  update(camera: Phaser.Cameras.Scene2D.Camera): void {
-    this.layers.forEach((layer) => {
+  update(camera: Phaser.Cameras.Scene2D.Camera, progress = 0): void {
+    const cold = Phaser.Display.Color.ValueToColor(0x0a1a33);
+    const warm = Phaser.Display.Color.ValueToColor(0x7ce8ff);
+    this.layers.forEach((layer, index) => {
       layer.sprite.tilePositionY = camera.scrollY * layer.factor;
+      const influence = Phaser.Math.Clamp(progress + index * 0.12, 0, 1);
+      const mix = Phaser.Display.Color.Interpolate.ColorWithColor(cold, warm, 100, influence * 100);
+      layer.sprite.setTint(Phaser.Display.Color.GetColor(mix.r, mix.g, mix.b));
     });
+
+    this.lightColumns.forEach((column, index) => {
+      column.y = camera.scrollY + this.scene.scale.height * 0.3 + index * 120;
+      column.alpha = 0.06 + progress * 0.25;
+    });
+
+    if (this.gradientOverlay) {
+      this.gradientOverlay.setAlpha(0.3 + progress * 0.25);
+    }
   }
 
   destroy(): void {
@@ -38,6 +56,10 @@ export class BackgroundManager {
     this.layers = [];
     this.props.forEach((prop) => prop.destroy());
     this.props = [];
+    this.gradientOverlay?.destroy();
+    this.gradientOverlay = undefined;
+    this.lightColumns.forEach((column) => column.destroy());
+    this.lightColumns = [];
   }
 
   private createLayer(config: LayerConfig, width: number, height: number): void {
@@ -80,6 +102,31 @@ export class BackgroundManager {
       });
 
       this.props.push(shard);
+    }
+  }
+
+  private createGradientOverlay(width: number, height: number): void {
+    const overlay = this.scene.add.graphics();
+    overlay.setScrollFactor(0);
+    overlay.setDepth(-25);
+    overlay.fillGradientStyle(0x081124, 0x0b1a36, 0x091127, 0x04060c, 0.4);
+    overlay.fillRect(-width, -height, width * 3, height * 3);
+    this.gradientOverlay = overlay;
+  }
+
+  private createLightColumns(width: number, height: number): void {
+    const columnCount = 3;
+    for (let i = 0; i < columnCount; i++) {
+      const column = this.scene.add.rectangle(
+        width * (0.25 + i * 0.25),
+        0,
+        width * 0.15,
+        height * 2.2,
+        0x7ce8ff,
+        0.08
+      );
+      column.setBlendMode(Phaser.BlendModes.ADD).setDepth(-15).setScrollFactor(0.05 + i * 0.03);
+      this.lightColumns.push(column);
     }
   }
 }

@@ -19,6 +19,17 @@ export class UIScene extends Phaser.Scene {
   private currentHeight: number = 0;
   private currentScore: number = 0;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
+  private hudFrame!: Phaser.GameObjects.Graphics;
+  private connectorGraphic!: Phaser.GameObjects.Graphics;
+  private hudBackdrop!: Phaser.GameObjects.Graphics;
+  private heightIcon!: Phaser.GameObjects.Rectangle;
+  private scoreIcon!: Phaser.GameObjects.Star;
+  private comboContainer!: Phaser.GameObjects.Container;
+  private comboText!: Phaser.GameObjects.Text;
+  private comboMultiplierText!: Phaser.GameObjects.Text;
+  private comboProgress!: Phaser.GameObjects.Rectangle;
+  private comboActive = false;
+  private milestoneToast?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "UIScene" });
@@ -28,21 +39,44 @@ export class UIScene extends Phaser.Scene {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
 
+    this.createHUDBackdrop();
     // Create HUD panels
     this.createHUDPanels();
     
     // Create animated counters
     this.createCounters();
+    this.createHUDDecorations();
     
     // Create score burst effect
     this.createScoreBurstContainer();
+    this.createComboIndicator();
     
     // Listen to events from GameScene
     this.game.events.on("heightUpdate", this.onHeightUpdate, this);
+    this.game.events.on("heightProgress", this.onHeightProgress, this);
+    this.game.events.on("scoreUpdate", this.onScoreUpdate, this);
+    this.game.events.on("comboUpdate", this.onComboUpdate, this);
+    this.game.events.on("comboEnded", this.onComboEnded, this);
+    this.game.events.on("heightMilestone", this.onHeightMilestone, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off("heightUpdate", this.onHeightUpdate, this);
+      this.game.events.off("heightProgress", this.onHeightProgress, this);
+      this.game.events.off("scoreUpdate", this.onScoreUpdate, this);
+      this.game.events.off("comboUpdate", this.onComboUpdate, this);
+      this.game.events.off("comboEnded", this.onComboEnded, this);
+      this.game.events.off("heightMilestone", this.onHeightMilestone, this);
     });
+  }
+
+  private createHUDBackdrop(): void {
+    const { width } = this.scale;
+    this.hudBackdrop = this.add.graphics().setDepth(0.15);
+    this.hudBackdrop.fillGradientStyle(0x04122a, 0x061a3d, 0x050a16, 0x03050d, 0.95);
+    this.hudBackdrop.fillRoundedRect(30, 18, width - 60, 96, 28);
+    this.hudBackdrop.lineStyle(1, 0x102339, 0.85);
+    this.hudBackdrop.strokeRoundedRect(30, 18, width - 60, 96, 28);
+    this.hudBackdrop.setAlpha(0.55);
   }
 
   private createHUDPanels(): void {
@@ -56,7 +90,7 @@ export class UIScene extends Phaser.Scene {
       height: 80,
       backgroundColor: 0x030d20,
       borderColor: 0x4adeff,
-      alpha: 0.85
+      alpha: 0.95
     });
 
     // Score panel (right side)
@@ -67,7 +101,7 @@ export class UIScene extends Phaser.Scene {
       height: 80,
       backgroundColor: 0x030d20,
       borderColor: 0x9acbff,
-      alpha: 0.85
+      alpha: 0.95
     });
 
     // Add floating animation to panels
@@ -121,34 +155,162 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  private createHUDDecorations(): void {
+    this.hudFrame = this.add.graphics().setDepth(0.4);
+    this.connectorGraphic = this.add.graphics().setDepth(0.35);
+    this.redrawHUDFrame(0);
+
+    // Iconography to anchor panels
+    this.heightIcon = this.add
+      .rectangle(58, 60, 12, 12, 0x4adeff, 0.5)
+      .setDepth(0.5)
+      .setAngle(45)
+      .setStrokeStyle(2, 0xffffff, 0.4);
+
+    this.scoreIcon = this.add
+      .star(this.scale.width - 58, 60, 5, 4, 9, 0x9acbff, 0.45)
+      .setDepth(0.5)
+      .setStrokeStyle(1, 0xffffff, 0.35);
+
+    this.heightIcon.setBlendMode(Phaser.BlendModes.ADD);
+    this.scoreIcon.setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  private redrawHUDFrame(progress: number): void {
+    const { width } = this.scale;
+    const accent = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0x1c3c5b),
+      Phaser.Display.Color.ValueToColor(0x7ce8ff),
+      100,
+      progress * 100
+    );
+    const accentColor = Phaser.Display.Color.GetColor(accent.r, accent.g, accent.b);
+
+    this.hudFrame.clear();
+    this.hudFrame.fillStyle(0x01040b, 0.22);
+    this.hudFrame.fillRoundedRect(30, 18, width - 60, 96, 24);
+    this.hudFrame.lineStyle(2, accentColor, 0.28 + progress * 0.2);
+    this.hudFrame.strokeRoundedRect(30, 18, width - 60, 96, 24);
+
+    this.connectorGraphic.clear();
+    this.connectorGraphic.lineStyle(1, accentColor, 0.35 + progress * 0.2);
+    this.connectorGraphic.beginPath();
+    this.connectorGraphic.moveTo(58, 92);
+    this.connectorGraphic.lineTo(58, 140);
+    this.connectorGraphic.moveTo(width - 58, 92);
+    this.connectorGraphic.lineTo(width - 58, 140);
+    this.connectorGraphic.strokePath();
+  }
+
   private createScoreBurstContainer(): void {
     this.scoreBurstContainer = this.add.container(0, 0);
   }
 
+  private createComboIndicator(): void {
+    const { width } = this.scale;
+    this.comboContainer = this.add.container(width / 2, 118).setDepth(1.2);
+
+    const background = this.add
+      .rectangle(0, 0, 220, 54, 0x04122a, 0.95)
+      .setStrokeStyle(1, 0x58dfff, 0.6);
+    const progressTrack = this.add.rectangle(0, 14, 180, 8, 0xffffff, 0.15);
+    this.comboProgress = this.add.rectangle(-90, 14, 180, 8, 0x58dfff, 0.9).setOrigin(0, 0.5);
+    this.comboProgress.displayWidth = 0;
+
+    this.comboText = this.uiSystem.createGlowingText("COMBO X1", 0, -8, {
+      fontSize: "16px",
+      color: "#e9f3ff",
+    });
+    this.comboText.setOrigin(0.5);
+
+    this.comboMultiplierText = this.uiSystem.createGlowingText("1.0x", 0, 12, {
+      fontSize: "14px",
+      color: "#9af7ff",
+    });
+    this.comboMultiplierText.setOrigin(0.5);
+
+    this.comboContainer.add([background, progressTrack, this.comboProgress, this.comboText, this.comboMultiplierText]);
+    this.comboContainer.setVisible(false).setAlpha(0);
+  }
+
   private onHeightUpdate(height: number): void {
     const newHeight = Math.floor(height);
-    const newScore = Math.floor(height * 10);
-    
-    // Only update if values changed
-    if (newHeight !== this.currentHeight) {
-      this.currentHeight = newHeight;
-      this.currentScore = newScore;
-      
-      // Update text with animation
-      this.updateHeightDisplay();
-      this.updateScoreDisplay();
-      
-      // Create score burst effect for significant changes
-      if (newHeight > 0 && newHeight % 50 === 0) {
-        this.createScoreBurst();
-      }
+    if (newHeight === this.currentHeight) {
+      return;
+    }
+    this.currentHeight = newHeight;
+    this.updateHeightDisplay();
+
+    if (newHeight > 0 && newHeight % 100 === 0) {
+      this.createScoreBurst();
+    }
+  }
+
+  private onScoreUpdate(score: number): void {
+    if (score === this.currentScore) {
+      return;
+    }
+    const delta = score - this.currentScore;
+    this.currentScore = score;
+    this.updateScoreDisplay(delta);
+    if (delta >= 25) {
+      this.createScoreBurst();
+    }
+  }
+
+  private onComboUpdate(payload: { count: number; multiplier: number; bonus: number; progress: number; passive?: boolean }): void {
+    if (payload.count <= 1) {
+      this.onComboEnded();
+      return;
     }
 
-    // Update DOM element if it exists
-    const scoreElement = document.getElementById("score-display");
-    if (scoreElement) {
-      scoreElement.textContent = this.currentScore.toString();
+    if (!this.comboActive) {
+      this.comboActive = true;
+      this.comboContainer.setVisible(true);
+      this.tweens.add({
+        targets: this.comboContainer,
+        alpha: 1,
+        duration: 200,
+        ease: "Sine.easeOut",
+      });
     }
+
+    this.comboText.setText(`COMBO X${payload.count}`);
+    this.comboMultiplierText.setText(`${payload.multiplier.toFixed(2)}x`);
+    const progress = Phaser.Math.Clamp(payload.progress, 0, 1);
+    this.comboProgress.displayWidth = 180 * progress;
+
+    if (!payload.passive) {
+      this.tweens.add({
+        targets: this.comboContainer,
+        scaleX: { from: 1, to: 1.03 },
+        scaleY: { from: 1, to: 1.03 },
+        duration: 160,
+        yoyo: true,
+        ease: "Quad.easeOut",
+      });
+    }
+  }
+
+  private onComboEnded(): void {
+    if (!this.comboActive) {
+      return;
+    }
+    this.comboActive = false;
+    this.comboContainer.setScale(1);
+    this.comboProgress.displayWidth = 0;
+    this.tweens.add({
+      targets: this.comboContainer,
+      alpha: 0,
+      duration: 220,
+      ease: "Sine.easeIn",
+      onComplete: () => this.comboContainer.setVisible(false),
+    });
+  }
+
+  private onHeightMilestone(payload: { height: number; bonus: number }): void {
+    this.showMilestoneToast(payload.height, payload.bonus);
+    this.createScoreBurst();
   }
 
   private updateHeightDisplay(): void {
@@ -168,18 +330,23 @@ export class UIScene extends Phaser.Scene {
     this.createNumberSpark(this.heightText.x, this.heightText.y);
   }
 
-  private updateScoreDisplay(): void {
+  private updateScoreDisplay(delta = 0): void {
     // Animate text change
     this.tweens.add({
       targets: this.scoreText,
-      scaleX: 1.3,
-      scaleY: 1.3,
+      scaleX: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
+      scaleY: 1.1 + Math.min(Math.abs(delta) / 80, 0.3),
       duration: 200,
       yoyo: true,
       ease: "Power2"
     });
     
     this.scoreText.setText(this.currentScore.toString());
+    
+    const scoreElement = document.getElementById("score-display");
+    if (scoreElement) {
+      scoreElement.textContent = this.currentScore.toString();
+    }
   }
 
   private createScoreBurst(): void {
@@ -222,6 +389,84 @@ export class UIScene extends Phaser.Scene {
       duration: 600,
       ease: "Power2",
       onComplete: () => spark.destroy()
+    });
+  }
+
+  private onHeightProgress(payload: { progress: number }): void {
+    const progress = Phaser.Math.Clamp(payload?.progress ?? 0, 0, 1);
+    this.redrawHUDFrame(progress);
+    this.hudBackdrop.setAlpha(0.45 + progress * 0.25);
+    const heightColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0x4adeff),
+      Phaser.Display.Color.ValueToColor(0xfff3c1),
+      100,
+      progress * 100
+    );
+    const scoreColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0x9acbff),
+      Phaser.Display.Color.ValueToColor(0xff8dd9),
+      100,
+      progress * 100
+    );
+    this.heightIcon.setFillStyle(
+      Phaser.Display.Color.GetColor(heightColor.r, heightColor.g, heightColor.b),
+      0.45 + progress * 0.3
+    );
+    this.scoreIcon.setFillStyle(
+      Phaser.Display.Color.GetColor(scoreColor.r, scoreColor.g, scoreColor.b),
+      0.4 + progress * 0.25
+    );
+    const panelAlpha = 0.78 + progress * 0.15;
+    this.heightContainer.setAlpha(panelAlpha);
+    this.scoreContainer.setAlpha(panelAlpha);
+  }
+
+  private showMilestoneToast(height: number, bonus: number): void {
+    this.milestoneToast?.destroy();
+    const { width } = this.scale;
+    this.milestoneToast = this.add.container(width / 2, 160).setDepth(2);
+
+    const background = this.add
+      .rectangle(0, 0, 280, 58, 0x0b1f3f, 0.95)
+      .setStrokeStyle(1.5, 0xfff3c1, 0.85);
+    const title = this.uiSystem.createGlowingText(`${height.toFixed(0)}m REACHED`, 0, -10, {
+      fontSize: "16px",
+      color: "#fff4d1",
+    }).setOrigin(0.5);
+    const bonusText = this.uiSystem.createGlowingText(`+${bonus} bonus`, 0, 12, {
+      fontSize: "14px",
+      color: "#9af7ff",
+    }).setOrigin(0.5);
+
+    this.milestoneToast.add([background, title, bonusText]);
+    this.milestoneToast.setAlpha(0).setScale(0.95);
+
+    this.tweens.add({
+      targets: this.milestoneToast,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      y: 150,
+      duration: 220,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        this.time.delayedCall(1500, () => {
+          if (!this.milestoneToast) {
+            return;
+          }
+          this.tweens.add({
+            targets: this.milestoneToast,
+            alpha: 0,
+            y: 130,
+            duration: 260,
+            ease: "Sine.easeIn",
+            onComplete: () => {
+              this.milestoneToast?.destroy();
+              this.milestoneToast = undefined;
+            },
+          });
+        });
+      },
     });
   }
 

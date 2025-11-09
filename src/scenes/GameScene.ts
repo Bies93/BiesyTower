@@ -1,11 +1,8 @@
 import Phaser from "phaser";
 import { baseGameConfig } from "../config/gameConfig";
 import { createPlayerStub } from "../core/player/Player";
-import {
-  createPlatformManagerStub,
-  PlatformManager,
-  PlatformType,
-} from "../core/world/PlatformManager";
+import { createPlatformManagerStub, PlatformManager } from "../core/world/PlatformManager";
+import { PlatformType } from "../core/world/platformTypes";
 import { restartOverlayUi, transitionToMenu } from "../core/scene/SceneController";
 import { BackgroundManager } from "../core/world/BackgroundManager";
 
@@ -24,6 +21,15 @@ export class GameScene extends Phaser.Scene {
   private coyoteTimer = 0;
   private canDoubleJump = true;
   private jumpKey!: Phaser.Input.Keyboard.Key;
+  private sidePillars: Phaser.GameObjects.Container[] = [];
+  private score = 0;
+  private passiveHeightScore = 0;
+  private comboCount = 1;
+  private comboTimerMs = 0;
+  private readonly comboWindowMs = 1400;
+  private lastLandingTimestamp = 0;
+  private nextMilestone = 100;
+  private milestoneStep = 100;
 
   constructor() {
     super({ key: "GameScene" });
@@ -47,6 +53,12 @@ export class GameScene extends Phaser.Scene {
     this.platformManager = createPlatformManagerStub(this);
     this.platformManager.initialize(this.startY);
 
+    // Create visual boundaries for left and right edges
+    this.createVisualBoundaries();
+
+    // Add environmental particle effects
+    this.createEnvironmentalParticles();
+
     this.physics.add.collider(
       this.player,
       this.platformManager.getGroup(),
@@ -65,11 +77,132 @@ export class GameScene extends Phaser.Scene {
     this.jumpBufferTimer = 0;
     this.coyoteTimer = 0;
     this.canDoubleJump = true;
-
+    this.score = 0;
+    this.passiveHeightScore = 0;
+    this.comboCount = 1;
+    this.comboTimerMs = 0;
+    this.lastLandingTimestamp = 0;
+    this.nextMilestone = 100;
+    this.milestoneStep = 100;
+    this.game.events.on("playerLanded", this.handlePlayerLanding, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.isEnding = false;
       this.backgroundManager?.destroy();
+      this.game.events.off("playerLanded", this.handlePlayerLanding, this);
     });
+
+    // Provide initial progress feedback
+    this.game.events.emit("heightProgress", { progress: 0 });
+    this.game.events.emit("scoreUpdate", this.score);
+    this.game.events.emit("comboEnded");
+  }
+
+  private createVisualBoundaries(): void {
+    const { width, height } = this.scale;
+    const pillarWidth = 28;
+    const pillarHeight = height * 2.4;
+    const xPositions = [pillarWidth / 2, width - pillarWidth / 2];
+
+    this.sidePillars.forEach((pillar) => pillar.destroy());
+    this.sidePillars = [];
+
+    xPositions.forEach((x, index) => {
+      const pillar = this.add.container(x, height / 2).setDepth(0);
+      const body = this.add.graphics();
+      body.fillGradientStyle(0x0a1424, 0x0f2741, 0x03070f, 0x03070f, 0.92);
+      body.fillRoundedRect(-pillarWidth / 2, -pillarHeight / 2, pillarWidth, pillarHeight, 18);
+
+      const highlight = this.add
+        .rectangle(index === 0 ? -pillarWidth / 2 + 2 : pillarWidth / 2 - 2, 0, 4, pillarHeight, 0x4adeff, 0.25)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      const rails = this.add.graphics();
+      rails.lineStyle(1.3, 0x1d3f63, 0.85);
+      for (let i = -pillarHeight / 2 + 30; i < pillarHeight / 2; i += 110) {
+        rails.strokeRoundedRect(-pillarWidth / 2 + 4, i, pillarWidth - 8, 16, 6);
+      }
+
+      pillar.add([body, rails, highlight]);
+      this.sidePillars.push(pillar);
+
+      this.tweens.add({
+        targets: highlight,
+        alpha: { from: 0.2, to: 0.55 },
+        duration: 2400,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+        delay: index * 200,
+      });
+    });
+
+    const bridge = this.add.graphics().setDepth(0);
+    bridge.lineStyle(2, 0x1a4c72, 0.65);
+    bridge.strokeRoundedRect(36, -this.scale.height * 0.02, width - 72, 32, 16);
+    bridge.setAlpha(0.85);
+  }
+
+  private createEnvironmentalParticles(): void {
+    const { width, height } = this.scale;
+    
+    // Create floating dust particles
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height * 2 - height; // Start above screen
+      const size = Math.random() * 2 + 0.5;
+      const alpha = Math.random() * 0.3 + 0.1;
+      
+      const particle = this.add.circle(x, y, size, 0xffffff, alpha).setDepth(0);
+      
+      // Random floating animation
+      const moveDuration = 3000 + Math.random() * 4000;
+      const targetY = y + height * 2 + Math.random() * 200; // Move down screen
+      
+      this.tweens.add({
+        targets: particle,
+        y: targetY,
+        x: x + (Math.random() - 0.5) * 50, // Slight horizontal drift
+        alpha: 0,
+        duration: moveDuration,
+        ease: "Linear",
+        onComplete: () => {
+          // Respawn particle at top
+          particle.setPosition(Math.random() * width, -20);
+          particle.setAlpha(Math.random() * 0.3 + 0.1);
+          this.tweens.add({
+            targets: particle,
+            y: targetY,
+            x: particle.x + (Math.random() - 0.5) * 50,
+            alpha: 0,
+            duration: moveDuration,
+            ease: "Linear",
+            onComplete: () => particle.destroy()
+          });
+        }
+      });
+    }
+    
+    // Create energy sparkles
+    for (let i = 0; i < 8; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height * 1.5;
+      const sparkle = this.add.star(x, y, 3, 1, 2, 0x4adeff, 0.4)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(0);
+      
+      // Twinkling animation
+      this.tweens.add({
+        targets: sparkle,
+        alpha: { from: 0.1, to: 0.6 },
+        scaleX: { from: 0.5, to: 1.2 },
+        scaleY: { from: 0.5, to: 1.2 },
+        duration: 1500 + Math.random() * 1000,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+        delay: i * 200
+      });
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -77,7 +210,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.backgroundManager?.update(this.cameras.main);
+    const progress = this.getHeightProgress();
+    this.backgroundManager?.update(this.cameras.main, progress);
+    this.game.events.emit("heightProgress", { progress });
     this.handleJumpLogic(delta);
 
     const speed = 180;
@@ -93,6 +228,9 @@ export class GameScene extends Phaser.Scene {
     this.currentHeight = Math.max(0, this.startY - this.player.y);
     this.platformManager.update(this.cameras.main);
     this.game.events.emit("heightUpdate", this.currentHeight);
+    this.updateScoreFromHeight();
+    this.handleComboDecay(delta);
+    this.checkHeightMilestones();
 
     const deathY = this.cameras.main.scrollY + this.scale.height + baseGameConfig.rules.deathMargin;
     if (this.player.y > deathY) {
@@ -143,6 +281,9 @@ export class GameScene extends Phaser.Scene {
     this.isEnding = true;
     console.log("GameScene: Player lost, transitioning to menu");
     this.game.events.emit("heightUpdate", 0);
+    this.score = 0;
+    this.passiveHeightScore = 0;
+    this.game.events.emit("scoreUpdate", this.score);
     this.cameras.main.fadeOut(350, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       transitionToMenu(this);
@@ -187,5 +328,175 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocityY(-baseGameConfig.physics.jumpVelocity * multiplier);
     this.jumpBufferTimer = 0;
     this.coyoteTimer = 0;
+    this.game.events.emit("playerJump", { isAirJump });
+    this.createJumpBurst(isAirJump);
+  }
+
+  private createJumpBurst(isAirJump: boolean): void {
+    const color = isAirJump ? 0xffffff : 0x4adeff;
+    const radius = isAirJump ? 12 : 8;
+    const burst = this.add.circle(this.player.x, this.player.y, radius, color, 0.35);
+    burst.setBlendMode(Phaser.BlendModes.ADD).setDepth(4);
+
+    this.tweens.add({
+      targets: burst,
+      alpha: 0,
+      scaleX: 2,
+      scaleY: 2,
+      duration: isAirJump ? 280 : 220,
+      ease: "Quad.easeOut",
+      onComplete: () => burst.destroy(),
+    });
+  }
+
+  private handlePlayerLanding(payload: { x: number; y: number; velocity: number }): void {
+    if (this.isEnding) {
+      return;
+    }
+    this.createLandingShockwave(payload.x, payload.y, payload.velocity);
+    this.processComboLanding(payload);
+  }
+
+  private createLandingShockwave(x: number, y: number, velocity: number): void {
+    const ring = this.add.graphics({ x, y }).setDepth(4);
+    ring.lineStyle(2, 0x4adeff, 0.55);
+    ring.strokeRoundedRect(-20, -6, 40, 12, 6);
+
+    this.tweens.add({
+      targets: ring,
+      alpha: 0,
+      scaleX: 1.8,
+      scaleY: 1.3,
+      duration: Phaser.Math.Clamp(Math.abs(velocity) * 1.5, 220, 520),
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
+    if (Math.abs(velocity) > 320) {
+      this.cameras.main.shake(100, 0.0035);
+    }
+  }
+
+  private getHeightProgress(): number {
+    return Phaser.Math.Clamp(this.currentHeight / 12000, 0, 1);
+  }
+
+  private updateScoreFromHeight(): void {
+    const passiveScoreTarget = Math.floor(this.currentHeight * 0.4);
+    if (passiveScoreTarget > this.passiveHeightScore) {
+      const delta = passiveScoreTarget - this.passiveHeightScore;
+      this.passiveHeightScore = passiveScoreTarget;
+      this.incrementScore(delta);
+    }
+  }
+
+  private incrementScore(amount: number): void {
+    if (amount === 0) {
+      return;
+    }
+    this.score += amount;
+    this.game.events.emit("scoreUpdate", this.score);
+  }
+
+  private processComboLanding(payload: { velocity: number }): void {
+    const now = this.time.now;
+    if (now - this.lastLandingTimestamp <= this.comboWindowMs) {
+      this.comboCount += 1;
+    } else {
+      this.comboCount = 1;
+    }
+    this.lastLandingTimestamp = now;
+    this.comboTimerMs = this.comboWindowMs;
+
+    const impact = Phaser.Math.Clamp(Math.abs(payload.velocity) * 0.15, 6, 90);
+    const multiplier = 1 + Math.min(this.comboCount - 1, 8) * 0.15;
+    const bonus = Math.round(impact * multiplier);
+    this.incrementScore(bonus);
+
+    this.game.events.emit("comboUpdate", {
+      count: this.comboCount,
+      multiplier,
+      bonus,
+      progress: 1,
+    });
+  }
+
+  private handleComboDecay(delta: number): void {
+    if (this.comboCount <= 1 || this.comboTimerMs <= 0) {
+      return;
+    }
+    this.comboTimerMs = Math.max(0, this.comboTimerMs - delta);
+    const progress = Phaser.Math.Clamp(this.comboTimerMs / this.comboWindowMs, 0, 1);
+    this.game.events.emit("comboUpdate", {
+      count: this.comboCount,
+      multiplier: 1 + Math.min(this.comboCount - 1, 8) * 0.15,
+      bonus: 0,
+      progress,
+      passive: true,
+    });
+
+    if (this.comboTimerMs === 0) {
+      this.comboCount = 1;
+      this.comboTimerMs = 0;
+      this.game.events.emit("comboEnded");
+    }
+  }
+
+  private checkHeightMilestones(): void {
+    while (this.currentHeight >= this.nextMilestone) {
+      this.triggerHeightMilestone(this.nextMilestone);
+      this.milestoneStep = Math.min(400, this.milestoneStep + 50);
+      this.nextMilestone += this.milestoneStep;
+    }
+  }
+
+  private triggerHeightMilestone(heightMark: number): void {
+    const bonus = 50 + Math.floor(heightMark * 0.1);
+    this.incrementScore(bonus);
+    this.game.events.emit("heightMilestone", { height: heightMark, bonus });
+    this.createMilestoneCelebration(heightMark);
+  }
+
+  private createMilestoneCelebration(heightMark: number): void {
+    const { width, height } = this.scale;
+    const banner = this.add
+      .text(width / 2, height * 0.22, `${heightMark.toFixed(0)} M`, {
+        fontSize: "28px",
+        color: "#ffffff",
+        fontStyle: "bold",
+        stroke: "#0a1a33",
+        strokeThickness: 6,
+      })
+      .setDepth(30)
+      .setScrollFactor(0);
+    banner.setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.add({
+      targets: banner,
+      alpha: 0,
+      y: banner.y - 40,
+      duration: 900,
+      ease: "Cubic.easeOut",
+      onComplete: () => banner.destroy(),
+    });
+
+    for (let i = 0; i < 16; i++) {
+      const spark = this.add
+        .circle(this.player.x, this.player.y - 10, 4, 0xfff3c1, 0.85)
+        .setDepth(6);
+      const angle = (i / 16) * Phaser.Math.PI2;
+      const distance = 70 + Math.random() * 40;
+      this.tweens.add({
+        targets: spark,
+        x: this.player.x + Math.cos(angle) * distance,
+        y: this.player.y + Math.sin(angle) * distance,
+        alpha: 0,
+        scale: 0.3,
+        duration: 820,
+        ease: "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+
+    this.cameras.main.flash(120, 255, 255, 255);
   }
 }
