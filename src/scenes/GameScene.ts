@@ -68,6 +68,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.cameras.main.startFollow(this.player, false, 0.08, 0.08);
+    this.cameras.main.roundPixels = true;
     this.cameras.main.setBackgroundColor(baseGameConfig.colors.background);
     this.cameras.main.fadeIn(250, 0, 0, 0);
 
