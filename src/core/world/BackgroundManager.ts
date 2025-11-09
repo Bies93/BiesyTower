@@ -19,16 +19,20 @@ export class BackgroundManager {
 
   create(): void {
     const { width, height } = this.scene.scale;
-    const configs: LayerConfig[] = [
-      { key: IMAGE_KEYS.backgroundSkyline, factor: 0.1, depth: -30, alpha: 0.9 },
-      { key: IMAGE_KEYS.backgroundMidFog, factor: 0.2, depth: -20, alpha: 0.8 },
-      { key: IMAGE_KEYS.backgroundNearPillars, factor: 0.35, depth: -10, alpha: 0.95 },
-    ];
 
-    configs.forEach((config) => this.createLayer(config, width, height));
-    this.createProps(width, height);
-    this.createGradientOverlay(width, height);
-    this.createLightColumns(width, height);
+    // Single continuous dystopian background layer
+    const config: LayerConfig = {
+      key: IMAGE_KEYS.backgroundDystopiaVertical,
+      factor: 0.2,
+      depth: -30,
+      alpha: 1,
+    };
+
+    this.createLayer(config, width, height);
+    // Optional: keep subtle props/overlay; remove if you truly want only the raw background
+    // this.createProps(width, height);
+    // this.createGradientOverlay(width, height);
+    // this.createLightColumns(width, height);
   }
 
   update(camera: Phaser.Cameras.Scene2D.Camera, progress = 0): void {
