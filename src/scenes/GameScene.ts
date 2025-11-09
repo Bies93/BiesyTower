@@ -47,9 +47,12 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.physics.world.setBounds(0, -Infinity, width, Infinity);
 
-    this.player = createPlayerStub(this, width / 2, height - 80);
+    // Start deutlich weiter unten: Spieler näher am unteren Rand platzieren
+    const startPlayerY = height - 100;
+    this.player = createPlayerStub(this, width / 2, startPlayerY);
     this.startY = this.player.y;
 
+    // Plattformen direkt von ganz unten aus generieren lassen
     this.platformManager = createPlatformManagerStub(this);
     this.platformManager.initialize(this.startY);
 
@@ -67,10 +70,14 @@ export class GameScene extends Phaser.Scene {
       this
     );
 
-    this.cameras.main.startFollow(this.player, false, 0.08, 0.08);
-    this.cameras.main.roundPixels = true;
-    this.cameras.main.setBackgroundColor(baseGameConfig.colors.background);
-    this.cameras.main.fadeIn(250, 0, 0, 0);
+    // Kamera: Start in der Mitte des Bildschirms, dann weich mitziehen
+    const cam = this.cameras.main;
+    cam.setZoom(1); // Standardzoom beibehalten, Fokus auf Spielfläche
+    cam.setLerp(0.1, 0.1); // Ausgewogene horizontale und vertikale Nachführung
+    cam.startFollow(this.player, false, cam.lerp.x, cam.lerp.y);
+    cam.roundPixels = true;
+    cam.setBackgroundColor(baseGameConfig.colors.background);
+    cam.fadeIn(250, 0, 0, 0);
 
     this.currentHeight = 0;
     this.game.events.emit("heightUpdate", this.currentHeight);

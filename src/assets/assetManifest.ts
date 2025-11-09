@@ -41,6 +41,7 @@ export const IMAGE_KEYS = {
   platformCrumble: "platform-crumble",
   platformNarrow: "platform-narrow",
   backgroundDystopiaVertical: "background-dystopia-vertical",
+  backgroundDystopiaConcepts: "background-dystopia-concepts",
 } as const;
 
 export type ImageKey = (typeof IMAGE_KEYS)[keyof typeof IMAGE_KEYS];
@@ -56,6 +57,7 @@ export const assetManifest: AssetManifest = {
     { key: IMAGE_KEYS.playerJumpLeft, url: assetUrl("./Character/ancap_ball_links.png") },
     { key: IMAGE_KEYS.playerIdleLanding, url: assetUrl("./Character/ancap_ball_pressed.png") },
     { key: IMAGE_KEYS.backgroundDystopiaVertical, url: assetUrl("./Backgrounds/dystopia_vertical_set.png") },
+    { key: IMAGE_KEYS.backgroundDystopiaConcepts, url: assetUrl("./Backgrounds/dystopia_concepts_set.png") },
     { key: IMAGE_KEYS.propFloatingShards, url: assetUrl("./Props/prop_floating_shards_150x150.png") },
     { key: IMAGE_KEYS.propLightBeam, url: assetUrl("./Props/prop_light_beam_300x600.png") },
     { key: IMAGE_KEYS.platformBase, url: assetUrl("./Platforms/platform_base_128x64.png") },

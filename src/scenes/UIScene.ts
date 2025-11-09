@@ -68,8 +68,7 @@ export class UIScene extends Phaser.Scene {
     }
     this.updateHighScoreDisplay();
 
-    this.createHUDShell();
-    this.createHUDContent();
+    this.createMinimalUI();
     
     // Create score burst effect
     this.createScoreBurstContainer();
@@ -77,7 +76,7 @@ export class UIScene extends Phaser.Scene {
     
     // Listen to events from GameScene
     this.game.events.on("heightUpdate", this.onHeightUpdate, this);
-    this.game.events.on("heightProgress", this.onHeightProgress, this);
+    // this.game.events.on("heightProgress", this.onHeightProgress, this);
     this.game.events.on("scoreUpdate", this.onScoreUpdate, this);
     this.game.events.on("comboUpdate", this.onComboUpdate, this);
     this.game.events.on("comboEnded", this.onComboEnded, this);
@@ -85,7 +84,7 @@ export class UIScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off("heightUpdate", this.onHeightUpdate, this);
-      this.game.events.off("heightProgress", this.onHeightProgress, this);
+      // this.game.events.off("heightProgress", this.onHeightProgress, this);
       this.game.events.off("scoreUpdate", this.onScoreUpdate, this);
       this.game.events.off("comboUpdate", this.onComboUpdate, this);
       this.game.events.off("comboEnded", this.onComboEnded, this);
@@ -93,189 +92,39 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  private createHUDShell(): void {
+
+  private createMinimalUI(): void {
     const { width } = this.scale;
-    const margin = 12;
-    const topOffset = 18;
-    const bannerWidth = width - margin * 2;
 
-    this.hudBackdrop = this.add.graphics().setDepth(40).setScrollFactor(0);
-    const topLeft = Phaser.Display.Color.ValueToColor(0x040b18);
-    const topRight = Phaser.Display.Color.ValueToColor(0x07162a);
-    const bottomLeft = Phaser.Display.Color.ValueToColor(0x0b2440);
-    const bottomRight = Phaser.Display.Color.ValueToColor(0x0a2746);
-    this.hudBackdrop.fillGradientStyle(
-      Phaser.Display.Color.GetColor(topLeft.r, topLeft.g, topLeft.b),
-      Phaser.Display.Color.GetColor(topRight.r, topRight.g, topRight.b),
-      Phaser.Display.Color.GetColor(bottomLeft.r, bottomLeft.g, bottomLeft.b),
-      Phaser.Display.Color.GetColor(bottomRight.r, bottomRight.g, bottomRight.b),
-      0.9,
-      0.92,
-      0.9,
-      0.88
-    );
-    this.hudBackdrop.fillRoundedRect(margin, topOffset, bannerWidth, 76, 24);
-    this.hudBackdrop.lineStyle(2, 0x4adeff, 0.22);
-    this.hudBackdrop.strokeRoundedRect(margin, topOffset, bannerWidth, 76, 24);
+    // Create simple text displays for height and score
+    this.heightValue = this.add.text(20, 20, "0 m", {
+      fontFamily: "'Segoe UI', sans-serif",
+      fontSize: "18px",
+      color: "#4adeff",
+      stroke: "#000000",
+      strokeThickness: 2
+    }).setDepth(50).setScrollFactor(0);
 
-    this.hudHighlight = this.add
-      .rectangle(width / 2, topOffset + 20, bannerWidth - 60, 18, 0x58dfff, 0.16)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(41)
-      .setScrollFactor(0);
+    this.scoreValue = this.add.text(width - 100, 20, "0", {
+      fontFamily: "'Segoe UI', sans-serif",
+      fontSize: "18px",
+      color: "#6be8ff",
+      stroke: "#000000",
+      strokeThickness: 2
+    }).setDepth(50).setScrollFactor(0).setOrigin(1, 0);
 
-    this.add
-      .rectangle(width / 2 - bannerWidth / 2 + 60, topOffset + 6, 120, 12, 0xffffff, 0.06)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(41)
-      .setScrollFactor(0);
-  }
-
-  private createHUDContent(): void {
-    const { width } = this.scale;
-    const margin = 12;
-    const bannerWidth = width - margin * 2;
-
-    this.hudContainer = this.add.container(width / 2, 54).setDepth(60).setScrollFactor(0);
-
-    const brand = this.createBrandSection();
-    brand.container.setPosition(-bannerWidth / 2 + brand.width / 2 + 4, 0);
-    this.hudContainer.add(brand.container);
-
-    const heightWidth = 82;
-    const scoreWidth = 82;
-    const highWidth = 90;
-    const metricGap = 8;
-    const totalMetricsWidth = heightWidth + scoreWidth + highWidth + metricGap * 2;
-    const metricsLeft = Math.max(
-      -bannerWidth / 2 + brand.width + 16,
-      bannerWidth / 2 - totalMetricsWidth
-    );
-
-    let cursor = metricsLeft;
-    const heightCenter = cursor + heightWidth / 2;
-    cursor += heightWidth + metricGap;
-    const scoreCenter = cursor + scoreWidth / 2;
-    cursor += scoreWidth + metricGap;
-    const highCenter = cursor + highWidth / 2;
-
-    const heightMetric = this.createMetricBlock("HEIGHT", "0 m", heightWidth, 0x4adeff);
-    heightMetric.container.setPosition(heightCenter, 0);
-    this.heightValue = heightMetric.value;
-    this.heightBackground = heightMetric.background;
-    this.metricAccents.push(heightMetric.accent);
-    this.hudContainer.add(heightMetric.container);
-
-    const scoreMetric = this.createMetricBlock("SCORE", "0", scoreWidth, 0x6be8ff);
-    scoreMetric.container.setPosition(scoreCenter, 0);
-    this.scoreValue = scoreMetric.value;
-    this.scoreBackground = scoreMetric.background;
-    this.metricAccents.push(scoreMetric.accent);
-    this.hudContainer.add(scoreMetric.container);
-
-    const highMetric = this.createMetricBlock("HIGHSCORE", "0", highWidth, 0xff9cf7, true);
-    highMetric.container.setPosition(highCenter, 0);
-    this.highScoreValue = highMetric.value;
-    this.highBackground = highMetric.background;
-    this.metricAccents.push(highMetric.accent);
-    this.hudContainer.add(highMetric.container);
-
-    this.tweens.add({
-      targets: this.metricAccents,
-      alpha: { from: 0.35, to: 0.6 },
-      duration: 3200,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    this.highScoreValue = this.add.text(width / 2, 20, "HIGH: 0", {
+      fontFamily: "'Segoe UI', sans-serif",
+      fontSize: "16px",
+      color: "#ff9cf7",
+      stroke: "#000000",
+      strokeThickness: 2
+    }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0);
 
     this.updateHighScoreDisplay();
   }
 
-  private createBrandSection(): { container: Phaser.GameObjects.Container; width: number } {
-    const container = this.add.container(0, 0);
-    container.setScrollFactor(0);
-    container.setDepth(70);
 
-    const glow = this.add.rectangle(-48, 0, 48, 48, 0x4adeff, 0.16);
-    glow.setBlendMode(Phaser.BlendModes.ADD);
-
-    const signet = this.add.arc(-48, 0, 20, 0, 360, false, 0x58dfff, 0.9);
-    signet.setStrokeStyle(2, 0xffffff, 0.65);
-    const inner = this.add.arc(-48, 0, 8, 0, 360, false, 0xffffff, 0.92);
-
-    const title = this.add.text(-16, -8, "BIESYTOWER", {
-      fontFamily: "'Segoe UI', 'Roboto', sans-serif",
-      fontSize: "16px",
-      fontStyle: "700",
-      color: "#e9f3ff",
-    });
-    title.setOrigin(0, 0.5);
-
-    const subtitle = this.add.text(-16, 12, "NEON ASCENT LAB", {
-      fontFamily: "'Segoe UI', 'Roboto', sans-serif",
-      fontSize: "9px",
-      color: "rgba(164, 211, 255, 0.75)",
-    });
-    subtitle.setOrigin(0, 0.5);
-
-    container.add([glow, signet, inner, title, subtitle]);
-
-    this.tweens.add({
-      targets: inner,
-      angle: 360,
-      duration: 12000,
-      repeat: -1,
-      ease: "Linear",
-    });
-
-    return {
-      container,
-      width: Phaser.Math.Clamp(title.displayWidth + 60, 120, 150),
-    };
-  }
-
-  private createMetricBlock(
-    label: string,
-    initialValue: string,
-    width: number,
-    accentColor: number,
-    isAccent = false
-  ): {
-    container: Phaser.GameObjects.Container;
-    background: Phaser.GameObjects.Rectangle;
-    accent: Phaser.GameObjects.Rectangle;
-    value: Phaser.GameObjects.Text;
-  } {
-    const container = this.add.container(0, 0).setDepth(70).setScrollFactor(0);
-    const baseColor = isAccent ? 0x103058 : 0x0c1f36;
-    const background = this.add
-      .rectangle(0, 0, width, 46, baseColor, 0.82)
-      .setStrokeStyle(1.6, accentColor, isAccent ? 0.7 : 0.52);
-
-    const accent = this.add
-      .rectangle(0, -14, width - 26, 4, accentColor, isAccent ? 0.55 : 0.4)
-      .setBlendMode(Phaser.BlendModes.ADD);
-
-    const labelText = this.add.text(-width / 2 + 12, -6, label, {
-      fontFamily: "'Segoe UI', 'Roboto', sans-serif",
-      fontSize: "9px",
-      color: isAccent ? "rgba(255, 224, 255, 0.85)" : "rgba(164, 211, 255, 0.82)",
-    });
-    labelText.setOrigin(0, 0.5);
-
-    const valueText = this.add.text(width / 2 - 12, 10, initialValue, {
-      fontFamily: "'Segoe UI', 'Roboto', sans-serif",
-      fontSize: isAccent ? "17px" : "15px",
-      fontStyle: "700",
-      color: isAccent ? "#fff6ff" : "#e9f3ff",
-    });
-    valueText.setOrigin(1, 0.5);
-
-    container.add([background, accent, labelText, valueText]);
-
-    return { container, background, accent, value: valueText };
-  }
 
   private createScoreBurstContainer(): void {
     this.scoreBurstContainer = this.add.container(0, 0).setDepth(80).setScrollFactor(0);
@@ -458,7 +307,6 @@ export class UIScene extends Phaser.Scene {
     if (!element) {
       return;
     }
-  }
 
     element.textContent = value;
 

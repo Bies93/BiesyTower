@@ -100,7 +100,7 @@ export class UISystem {
           textObj.setScale(1.05);
           background.setAlpha(0.95);
           textObj.setTint(0xffffff);
-          background.setStrokeStyle(borderWidth + 1, borderColor, 1);
+          background.lineStyle(borderWidth + 1, borderColor, 1);
           glow.setVisible(true);
           onHover?.();
         }
