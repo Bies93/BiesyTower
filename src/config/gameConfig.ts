@@ -1,5 +1,5 @@
 /**
- * Zentrale Game-Konfiguration für Icy Tower Modern.
+ * Zentrale Game-Konfiguration für BiesyTower.
  * Entkoppelt Kernparameter von Phaser-spezifischem Code.
  */
 

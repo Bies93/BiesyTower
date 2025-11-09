@@ -1,6 +1,6 @@
-# Projektplan: Modernes Icy Tower (Web)
+# Projektplan: BiesyTower (Web)
 
-Ziel: Ein modernes, visuell ansprechendes Icy-Tower-Remake als Browser-Game (primär Desktop), mit sauberer Mobile-Unterstützung, das alle Kernfunktionen und Eigenschaften des Originals enthält und diese sinnvoll erweitert, ohne den Charakter zu verlieren.
+Ziel: Ein modernes, visuell ansprechendes BiesyTower-Remake als Browser-Game (primär Desktop), mit sauberer Mobile-Unterstützung, das alle Kernfunktionen und Eigenschaften des Originals enthält und diese sinnvoll erweitert, ohne den Charakter zu verlieren.
 
 ---
 

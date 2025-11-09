@@ -93,7 +93,7 @@ const PLATFORM_PHASES: PlatformPhase[] = [
 ];
 
 /**
- * PlatformManager - Infinite Platform Generation for Icy Tower
+ * PlatformManager - Infinite Platform Generation for BiesyTower
  */
 export class PlatformManager extends Phaser.Events.EventEmitter {
   private readonly scene: Phaser.Scene;

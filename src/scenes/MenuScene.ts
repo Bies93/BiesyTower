@@ -5,7 +5,7 @@ import { UISystem } from "../core/ui/UISystem";
 /**
  * MenuScene:
  * - Enhanced Hauptmenü mit modernem Design und Animationen
- * - Visual Design mit Ice-Theme und Glow-Effekten
+ * - Visual Design mit Neon-Theme und Glow-Effekten
  */
 export class MenuScene extends Phaser.Scene {
   private uiSystem!: UISystem;
@@ -47,14 +47,15 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createParticleBackground(): void {
-    // Create ice crystal particles
+    // Create neon particle ambience
     for (let i = 0; i < 20; i++) {
       const x = Phaser.Math.Between(0, this.scale.width);
       const y = Phaser.Math.Between(0, this.scale.height);
       const size = Phaser.Math.Between(2, 6);
-      
+
       const particle = this.add.graphics();
-      particle.fillStyle(0x4adeff, 0.3);
+      const colorPalette = [0x40e0ff, 0xff5cf0, 0x8dff57];
+      particle.fillStyle(Phaser.Utils.Array.GetRandom(colorPalette), 0.35);
       particle.fillCircle(x, y, size);
       
       // Animate particles
@@ -73,13 +74,14 @@ export class MenuScene extends Phaser.Scene {
   private createBackgroundDecorations(): void {
     const { width, height } = this.scale;
     
-    // Create floating ice shards
+    // Create floating neon shards
     for (let i = 0; i < 5; i++) {
       const shard = this.add.graphics();
       const x = Phaser.Math.Between(50, width - 50);
       const y = Phaser.Math.Between(50, height - 50);
-      
-      shard.fillStyle(0x9acbff, 0.1);
+
+      const shardColors = [0xff66ff, 0x00fff6, 0x8dff57];
+      shard.fillStyle(Phaser.Utils.Array.GetRandom(shardColors), 0.12);
       shard.fillTriangle(
         x, y - 20,
         x - 15, y + 15,
@@ -102,17 +104,27 @@ export class MenuScene extends Phaser.Scene {
   private createTitle(): void {
     const { width, height } = this.scale;
     
-    // Main title with glow effect
-    this.title = this.uiSystem.createGlowingText("ICY TOWER", width / 2, height / 2 - 100, {
-      fontSize: "48px",
-      color: "#e9f3ff"
+    // Main title with neon glow effect
+    this.title = this.uiSystem.createGlowingText("BIESYTOWER", width / 2, height / 2 - 110, {
+      fontSize: "64px",
+      color: "#39fff3",
+      stroke: "#ff2bf2",
+      strokeThickness: 8
     });
-    
+    this.title.setShadow(0, 0, "#00eaff", 30, true, true);
+    this.title.setFontFamily("'Orbitron', 'Segoe UI', sans-serif");
+    this.title.setLetterSpacing(4);
+
     // Subtitle
-    this.subtitle = this.uiSystem.createGlowingText("MODERN EDITION", width / 2, height / 2 - 60, {
-      fontSize: "24px",
-      color: "#9acbff"
+    this.subtitle = this.uiSystem.createGlowingText("NEON ASCENT EDITION", width / 2, height / 2 - 58, {
+      fontSize: "26px",
+      color: "#ffe066",
+      stroke: "#ff00ff",
+      strokeThickness: 4
     });
+    this.subtitle.setShadow(0, 0, "#ff6bff", 18, true, true);
+    this.subtitle.setFontFamily("'Orbitron', 'Segoe UI', sans-serif");
+    this.subtitle.setLetterSpacing(6);
   }
 
   private createMenuButtons(): void {
@@ -124,9 +136,9 @@ export class MenuScene extends Phaser.Scene {
       x: width / 2,
       y: height / 2 + 20,
       fontSize: "18px",
-      backgroundColor: 0x0a1e3e,
-      textColor: "#e9f3ff",
-      borderColor: 0x4adeff,
+      backgroundColor: 0x140032,
+      textColor: "#ffffff",
+      borderColor: 0xff2bf2,
       onClick: () => this.startGame(),
       onHover: () => this.playHoverSound(),
       onHoverOut: () => this.playHoverOutSound()
@@ -138,9 +150,9 @@ export class MenuScene extends Phaser.Scene {
       x: width / 2,
       y: height / 2 + 80,
       fontSize: "16px",
-      backgroundColor: 0x0a1e3e,
-      textColor: "#9acbff",
-      borderColor: 0x4adeff,
+      backgroundColor: 0x140032,
+      textColor: "#39fff3",
+      borderColor: 0x00fff6,
       onClick: () => this.openSettings(),
       onHover: () => this.playHoverSound(),
       onHoverOut: () => this.playHoverOutSound()
