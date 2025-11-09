@@ -131,26 +131,6 @@ canvas {
   50% { opacity: 1; }
 }
 
-/* Score Display (DOM Integration) */
-#high-score-display {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--biesy-glass-bg);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--biesy-glass-border);
-  border-radius: var(--biesy-radius-md);
-  padding: 12px 20px;
-  color: var(--biesy-text-primary);
-  font-weight: 600;
-  font-size: 1.1rem;
-  text-shadow: 0 0 12px rgba(18, 247, 255, 0.35);
-  box-shadow: var(--biesy-shadow-soft);
-  z-index: 100;
-  pointer-events: none;
-  transform: translateZ(0);
-}
-
 /* High DPI Display Optimizations */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   #app::before {
@@ -173,13 +153,6 @@ canvas {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-  #high-score-display {
-    top: 10px;
-    right: 10px;
-    padding: 8px 16px;
-    font-size: 1rem;
-  }
-  
   canvas {
     border-radius: 0;
   }
