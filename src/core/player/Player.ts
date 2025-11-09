@@ -20,7 +20,7 @@ export function createPlayerStub(
   y: number
 ): Phaser.Types.Physics.Arcade.SpriteWithDynamicBody {
   const displaySize = { width: 48, height: 48 };
-  const hitboxSize = { width: 30, height: 36 }; // etwas kürzer und schmaler
+  const hitboxSize = { width: 32, height: 40 }; // klassische Arcade-Hitbox für stabile Bodenhaftung
   const player = scene.physics.add.sprite(x, y, IMAGE_KEYS.playerIdleLanding);
   player.setDisplaySize(displaySize.width, displaySize.height);
   player.setCollideWorldBounds(true);

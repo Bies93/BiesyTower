@@ -429,7 +429,7 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     const colliderWidth = Math.max(24, actualWidth * 0.92);
     const colliderHeight = Math.max(6, config.height * 0.34);
     const horizontalOffset = (actualWidth - colliderWidth) / 2;
-    const verticalLift = 6; // hebt die physische Oberkante an
+    const verticalLift = 12; // hebt die physische Oberkante deutlich an
     body.setSize(colliderWidth, colliderHeight);
     body.setOffset(horizontalOffset, -verticalLift);
 
