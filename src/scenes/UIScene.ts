@@ -91,12 +91,13 @@ export class UIScene extends Phaser.Scene {
 
   private createHUDBackdrop(): void {
     const { width } = this.scale;
-    this.hudBackdrop = this.add.graphics().setDepth(0.15);
-    this.hudBackdrop.fillGradientStyle(0x04122a, 0x061a3d, 0x050a16, 0x03050d, 0.95);
-    this.hudBackdrop.fillRoundedRect(30, 18, width - 60, 96, 28);
+    this.hudBackdrop = this.add.graphics().setDepth(50);
+    this.hudBackdrop.fillStyle(0x071225, 0.55);
+    // schlanker Streifen direkt am oberen Rand des Canvas
+    this.hudBackdrop.fillRoundedRect(16, 12, width - 32, 56, 16);
     this.hudBackdrop.lineStyle(1, 0x102339, 0.85);
-    this.hudBackdrop.strokeRoundedRect(30, 18, width - 60, 96, 28);
-    this.hudBackdrop.setAlpha(0.55);
+    this.hudBackdrop.strokeRoundedRect(16, 12, width - 32, 56, 16);
+    this.hudBackdrop.setScrollFactor(0);
   }
 
   private createHUDPanels(): void {
@@ -104,35 +105,31 @@ export class UIScene extends Phaser.Scene {
 
     // Height panel (left side)
     this.heightContainer = this.uiSystem.createPanel({
-      x: 100,
-      y: 50,
-      width: 160,
-      height: 80,
+      x: 120,
+      y: 40,
+      width: 150,
+      height: 56,
       backgroundColor: 0x030d20,
       borderColor: 0x4adeff,
       alpha: 0.95
-    }).setDepth(1.1);
+    })
+      .setDepth(100)
+      .setScrollFactor(0);
 
     // Score panel (right side)
     this.scoreContainer = this.uiSystem.createPanel({
-      x: width - 100,
-      y: 50,
-      width: 180,
-      height: 80,
+      x: width - 120,
+      y: 40,
+      width: 150,
+      height: 56,
       backgroundColor: 0x030d20,
       borderColor: 0x9acbff,
       alpha: 0.95
-    }).setDepth(1.1);
+    })
+      .setDepth(100)
+      .setScrollFactor(0);
 
-    // Add floating animation to panels
-    this.tweens.add({
-      targets: [this.heightContainer, this.scoreContainer],
-      y: 52,
-      duration: 3000,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut"
-    });
+    // keine Float-Animation mehr; feste, ruhige HUD
   }
 
   private createCounters(): void {
@@ -143,7 +140,7 @@ export class UIScene extends Phaser.Scene {
     });
     this.heightLabel.setOrigin(0.5);
     this.heightContainer.add(this.heightLabel);
-    this.heightLabel.setPosition(0, -18);
+    this.heightLabel.setPosition(0, -12);
 
     this.heightText = this.uiSystem.createGlowingText("0", this.heightContainer.x, this.heightContainer.y + 10, {
       fontSize: "28px",
@@ -151,7 +148,7 @@ export class UIScene extends Phaser.Scene {
     });
     this.heightText.setOrigin(0.5);
     this.heightContainer.add(this.heightText);
-    this.heightText.setPosition(0, 10);
+    this.heightText.setPosition(0, 6);
 
     // Score label and value
     this.scoreLabel = this.uiSystem.createGlowingText("SCORE", this.scoreContainer.x, this.scoreContainer.y - 15, {
@@ -160,7 +157,7 @@ export class UIScene extends Phaser.Scene {
     });
     this.scoreLabel.setOrigin(0.5);
     this.scoreContainer.add(this.scoreLabel);
-    this.scoreLabel.setPosition(0, -18);
+    this.scoreLabel.setPosition(0, -12);
 
     this.scoreText = this.uiSystem.createGlowingText("0", this.scoreContainer.x, this.scoreContainer.y + 10, {
       fontSize: "28px",
@@ -168,7 +165,7 @@ export class UIScene extends Phaser.Scene {
     });
     this.scoreText.setOrigin(0.5);
     this.scoreContainer.add(this.scoreText);
-    this.scoreText.setPosition(0, 10);
+    this.scoreText.setPosition(0, 6);
 
     // Add subtle glow pulsing
     this.tweens.add({
