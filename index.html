@@ -89,6 +89,30 @@
         font-size: 0.75rem;
         color: #8fc5ff;
       }
+      .hud-pill .value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #f4fbff;
+        letter-spacing: 0.14em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 10px rgba(74, 222, 255, 0.55);
+        transition: transform 0.2s ease, text-shadow 0.2s ease;
+      }
+      .hud-pill .value.is-updated {
+        animation: hud-pill-pulse 0.4s ease;
+        text-shadow: 0 0 14px rgba(148, 241, 255, 0.8);
+      }
+      @keyframes hud-pill-pulse {
+        0% {
+          transform: scale(1);
+        }
+        40% {
+          transform: scale(1.12);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
       .status-dot {
         width: 6px;
         height: 6px;
@@ -173,8 +197,8 @@
             <span>BIESYTOWER | PRE-ALPHA</span>
           </div>
           <div class="hud-pill">
-            <span class="label">Score</span>
-            <span id="score-display">0</span>
+            <span class="label">HIGH</span>
+            <span class="value" id="high-score-display">0</span>
           </div>
         </div>
         <div class="hud-bridge">

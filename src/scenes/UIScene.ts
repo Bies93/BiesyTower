@@ -18,6 +18,8 @@ export class UIScene extends Phaser.Scene {
   private scoreLabel!: Phaser.GameObjects.Text;
   private currentHeight: number = 0;
   private currentScore: number = 0;
+  private highScore: number = 0;
+  private highScoreDisplayEl?: HTMLElement;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
   private hudFrame!: Phaser.GameObjects.Graphics;
   private connectorGraphic!: Phaser.GameObjects.Graphics;
@@ -38,6 +40,24 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
+
+    const highScoreElement = document.getElementById("high-score-display");
+    if (highScoreElement instanceof HTMLElement) {
+      this.highScoreDisplayEl = highScoreElement;
+    }
+
+    try {
+      const storedHighScore = window.localStorage.getItem("biesytower-highscore");
+      if (storedHighScore) {
+        const parsedHighScore = Number(storedHighScore);
+        if (!Number.isNaN(parsedHighScore)) {
+          this.highScore = parsedHighScore;
+        }
+      }
+    } catch (error) {
+      // Access to localStorage can fail in privacy modes; ignore gracefully
+    }
+    this.updateHighScoreDisplay();
 
     this.createHUDBackdrop();
     // Create HUD panels
@@ -253,6 +273,15 @@ export class UIScene extends Phaser.Scene {
     const delta = score - this.currentScore;
     this.currentScore = score;
     this.updateScoreDisplay(delta);
+    if (this.currentScore > this.highScore) {
+      this.highScore = this.currentScore;
+      try {
+        window.localStorage.setItem("biesytower-highscore", this.highScore.toString());
+      } catch (error) {
+        // Ignore storage write errors
+      }
+      this.updateHighScoreDisplay(true);
+    }
     if (delta >= 25) {
       this.createScoreBurst();
     }
@@ -340,12 +369,22 @@ export class UIScene extends Phaser.Scene {
       yoyo: true,
       ease: "Power2"
     });
-    
+
     this.scoreText.setText(this.currentScore.toString());
-    
-    const scoreElement = document.getElementById("score-display");
-    if (scoreElement) {
-      scoreElement.textContent = this.currentScore.toString();
+  }
+
+  private updateHighScoreDisplay(pulse = false): void {
+    if (!this.highScoreDisplayEl) {
+      return;
+    }
+
+    this.highScoreDisplayEl.textContent = this.highScore.toString();
+
+    if (pulse) {
+      this.highScoreDisplayEl.classList.remove("is-updated");
+      // Force reflow so the animation can restart when the class is re-added
+      void this.highScoreDisplayEl.offsetWidth;
+      this.highScoreDisplayEl.classList.add("is-updated");
     }
   }
 

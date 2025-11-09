@@ -132,7 +132,7 @@ canvas {
 }
 
 /* Score Display (DOM Integration) */
-#score-display {
+#high-score-display {
   position: fixed;
   top: 20px;
   right: 20px;
@@ -173,7 +173,7 @@ canvas {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-  #score-display {
+  #high-score-display {
     top: 10px;
     right: 10px;
     padding: 8px 16px;
