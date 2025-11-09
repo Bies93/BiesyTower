@@ -1,6 +1,6 @@
-# Projektplan: Modernes Icy Tower (Web)
+# Projektplan: Modernes BiesyTower (Web)
 
-Ziel: Ein modernes, visuell ansprechendes Icy-Tower-Remake als Browser-Game (primär Desktop), mit sauberer Mobile-Unterstützung, das alle Kernfunktionen und Eigenschaften des Originals enthält und diese sinnvoll erweitert, ohne den Charakter zu verlieren.
+Ziel: Ein modernes, visuell ansprechendes BiesyTower-Remake als Browser-Game (primär Desktop), mit sauberer Mobile-Unterstützung, das alle Kernfunktionen und Eigenschaften des Originals enthält und diese sinnvoll erweitert, ohne den Charakter zu verlieren.
 
 ---
 
@@ -111,7 +111,7 @@ Plan: Start mit Phaser 3, Architektur aber so gestalten, dass Kernmechaniken nic
   - Optional für Menüs/Settings: HTML/CSS-Overlay
 - Design-Richtlinien:
   - Klare Typografie (z.B. Pixel- oder Semi-Pixel-Font für Nostalgie, kombiniert mit moderner Lesbarkeit)
-  - Farbpalette: kalte, „icy“ Blautöne, weiche Farbverläufe, dezente Glows
+  - Farbpalette: neonfarbene Cyan-/Magenta-Töne, weiche Farbverläufe, dezente Glows
   - Einheitliche UI-Komponenten
 
 ### 3.5. Assets und Audio

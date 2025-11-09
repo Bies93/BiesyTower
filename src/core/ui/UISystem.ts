@@ -178,6 +178,10 @@ export class UISystem {
       fontStyle?: string;
       stroke?: string;
       strokeThickness?: number;
+      shadowColor?: string;
+      shadowBlur?: number;
+      shadowFill?: boolean;
+      shadowStroke?: boolean;
     } = {}
   ): Phaser.GameObjects.Text {
     const {
@@ -185,7 +189,11 @@ export class UISystem {
       color = "#e9f3ff",
       fontStyle = "bold",
       stroke = "#4adeff",
-      strokeThickness = 2
+      strokeThickness = 2,
+      shadowColor,
+      shadowBlur = 16,
+      shadowFill = true,
+      shadowStroke = true
     } = style;
 
     const textObj = this.scene.add.text(x, y, text, {
@@ -196,6 +204,10 @@ export class UISystem {
       stroke,
       strokeThickness
     });
+
+    if (shadowColor) {
+      textObj.setShadow(0, 0, shadowColor, shadowBlur, shadowStroke, shadowFill);
+    }
 
     // Add subtle glow animation
     this.scene.tweens.add({
@@ -221,7 +233,7 @@ export class UISystem {
       speed: { min: 10, max: 30 },
       scale: { start: 1, end: 0 },
       alpha: { start: 0.6, end: 0 },
-      tint: [0x4adeff, 0x9acbff, 0xe9f3ff],
+      tint: [0x0ff7ff, 0xff4bf2, 0x7b2dff],
       blendMode: Phaser.BlendModes.ADD
     });
 
@@ -234,7 +246,7 @@ export class UISystem {
       speed: { min: 5, max: 15 },
       scale: { start: 0.5, end: 0 },
       alpha: { start: 0.4, end: 0 },
-      tint: [0x4adeff, 0x9acbff, 0xe9f3ff]
+      tint: [0x0ff7ff, 0xff4bf2, 0x7b2dff]
     });
   }
 }

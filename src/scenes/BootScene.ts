@@ -17,18 +17,21 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(baseGameConfig.colors.background);
 
     const title = this.add
-      .text(width / 2, height / 2 - 80, "ICY TOWER MODERN", {
-        fontSize: "22px",
-        color: "#e9f3ff",
+      .text(width / 2, height / 2 - 80, "BIESYTOWER", {
+        fontSize: "24px",
+        color: "#12f7ff",
         fontStyle: "bold",
         align: "center",
+        stroke: "#7b2dff",
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
+    title.setShadow(0, 0, "#7b2dff", 16, true, true);
 
     this.add
       .text(width / 2, title.y + 28, "Pre-Alpha Build", {
         fontSize: "12px",
-        color: "#9fdcff",
+        color: "#ffe6ff",
       })
       .setOrigin(0.5);
 
@@ -42,7 +45,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const progressBar = this.add
-      .rectangle(barX - barWidth / 2, barY, barWidth, 12, 0x4adeff)
+      .rectangle(barX - barWidth / 2, barY, barWidth, 12, 0x12f7ff)
       .setOrigin(0, 0.5);
     progressBar.scaleX = 0;
 
@@ -56,7 +59,7 @@ export class BootScene extends Phaser.Scene {
     const statusText = this.add
       .text(barX, barY + 24, "Lade Assets ...", {
         fontSize: "12px",
-        color: "#cfe8ff",
+        color: "#12f7ff",
       })
       .setOrigin(0.5);
 
