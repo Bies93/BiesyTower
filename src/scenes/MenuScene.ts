@@ -5,7 +5,7 @@ import { UISystem } from "../core/ui/UISystem";
 /**
  * MenuScene:
  * - Enhanced Hauptmenü mit modernem Design und Animationen
- * - Visual Design mit Ice-Theme und Glow-Effekten
+ * - Visual Design mit Neon-Theme und Glow-Effekten
  */
 export class MenuScene extends Phaser.Scene {
   private uiSystem!: UISystem;
@@ -47,16 +47,19 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createParticleBackground(): void {
-    // Create ice crystal particles
+    const palette = [0x0ff7ff, 0xff4bf2, 0x7b2dff, 0x12f7b9];
+
+    // Create neon particles that drift upwards for a cyber look
     for (let i = 0; i < 20; i++) {
       const x = Phaser.Math.Between(0, this.scale.width);
       const y = Phaser.Math.Between(0, this.scale.height);
       const size = Phaser.Math.Between(2, 6);
-      
+      const color = Phaser.Utils.Array.GetRandom(palette);
+
       const particle = this.add.graphics();
-      particle.fillStyle(0x4adeff, 0.3);
+      particle.fillStyle(color, Phaser.Math.FloatBetween(0.2, 0.4));
       particle.fillCircle(x, y, size);
-      
+
       // Animate particles
       this.tweens.add({
         targets: particle,
@@ -73,13 +76,13 @@ export class MenuScene extends Phaser.Scene {
   private createBackgroundDecorations(): void {
     const { width, height } = this.scale;
     
-    // Create floating ice shards
+    // Create floating neon shards
     for (let i = 0; i < 5; i++) {
       const shard = this.add.graphics();
       const x = Phaser.Math.Between(50, width - 50);
       const y = Phaser.Math.Between(50, height - 50);
-      
-      shard.fillStyle(0x9acbff, 0.1);
+
+      shard.fillStyle(0x7b2dff, 0.12);
       shard.fillTriangle(
         x, y - 20,
         x - 15, y + 15,
@@ -103,16 +106,29 @@ export class MenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     
     // Main title with glow effect
-    this.title = this.uiSystem.createGlowingText("ICY TOWER", width / 2, height / 2 - 100, {
-      fontSize: "48px",
-      color: "#e9f3ff"
+    this.title = this.uiSystem.createGlowingText("BIESYTOWER", width / 2, height / 2 - 110, {
+      fontSize: "56px",
+      color: "#12f7ff",
+      stroke: "#7b2dff",
+      strokeThickness: 8,
+      shadowColor: "#7b2dff",
+      shadowBlur: 28
     });
-    
+    this.title.setOrigin(0.5);
+    this.title.setAlpha(1);
+
     // Subtitle
-    this.subtitle = this.uiSystem.createGlowingText("MODERN EDITION", width / 2, height / 2 - 60, {
-      fontSize: "24px",
-      color: "#9acbff"
+    this.subtitle = this.uiSystem.createGlowingText("NEON ASCENT EDITION", width / 2, height / 2 - 50, {
+      fontSize: "26px",
+      color: "#ffe6ff",
+      stroke: "#12f7ff",
+      strokeThickness: 4,
+      shadowColor: "#12f7ff",
+      shadowBlur: 20,
+      fontStyle: "bold"
     });
+    this.subtitle.setOrigin(0.5);
+    this.subtitle.setAlpha(0.92);
   }
 
   private createMenuButtons(): void {
@@ -124,23 +140,23 @@ export class MenuScene extends Phaser.Scene {
       x: width / 2,
       y: height / 2 + 20,
       fontSize: "18px",
-      backgroundColor: 0x0a1e3e,
-      textColor: "#e9f3ff",
-      borderColor: 0x4adeff,
+      backgroundColor: 0x0a0f2c,
+      textColor: "#12f7ff",
+      borderColor: 0x12f7ff,
       onClick: () => this.startGame(),
       onHover: () => this.playHoverSound(),
       onHoverOut: () => this.playHoverOutSound()
     });
-    
+
     // Settings button
     this.settingsButton = this.uiSystem.createButton({
       text: "SETTINGS",
       x: width / 2,
       y: height / 2 + 80,
       fontSize: "16px",
-      backgroundColor: 0x0a1e3e,
-      textColor: "#9acbff",
-      borderColor: 0x4adeff,
+      backgroundColor: 0x120a2c,
+      textColor: "#ff4bf2",
+      borderColor: 0x7b2dff,
       onClick: () => this.openSettings(),
       onHover: () => this.playHoverSound(),
       onHoverOut: () => this.playHoverOutSound()
@@ -211,7 +227,7 @@ export class MenuScene extends Phaser.Scene {
       scale: { start: 1, end: 0 },
       lifespan: 800,
       alpha: { start: 0.8, end: 0 },
-      tint: [0x4adeff, 0x9acbff, 0xe9f3ff]
+      tint: [0x0ff7ff, 0xff4bf2, 0x7b2dff]
     });
     
     // Clean up particles after burst

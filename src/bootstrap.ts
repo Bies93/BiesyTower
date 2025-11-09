@@ -1,5 +1,5 @@
 /**
- * Projekt-Bootstrap für "Icy Tower Modern"
+ * Projekt-Bootstrap für "BiesyTower"
  *
  * Dieses Modul kapselt die Erstellung der Phaser.Game-Instanz
  * und bindet die vorgesehenen Szenen und Basis-Konfiguration ein.
