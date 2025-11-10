@@ -67,10 +67,13 @@ export function createPlayerStub(
     repeat: -1,
   });
 
-  // Particle System for Enhanced Visual Effects
-  const jumpParticles: Phaser.GameObjects.Circle[] = [];
-  const landingParticles: Phaser.GameObjects.Circle[] = [];
+  // Enhanced Particle System for Visual Effects
+  const jumpParticles: Phaser.GameObjects.Arc[] = [];
+  const landingParticles: Phaser.GameObjects.Arc[] = [];
   const trailParticles: Phaser.GameObjects.Image[] = [];
+  const energyParticles: Phaser.GameObjects.Arc[] = [];
+  const impactRings: Phaser.GameObjects.Graphics[] = [];
+  const motionBlur: Phaser.GameObjects.Image[] = [];
 
   let previousGroundState = false;
   let lastTrailSpawn = 0;
@@ -195,6 +198,69 @@ export function createPlayerStub(
     });
   };
 
+  const createEnergyAura = (x: number, y: number, intensity: number) => {
+    const aura = scene.add.circle(x, y, 20, 0x4adeff, 0.3 * intensity)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(3);
+    
+    scene.tweens.add({
+      targets: aura,
+      alpha: 0,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 400,
+      ease: "Quad.easeOut",
+      onComplete: () => aura.destroy()
+    });
+  };
+
+  const createMotionTrails = (x: number, y: number, velocity: { x: number; y: number }) => {
+    const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+    if (speed < 100) return;
+
+    const trail = scene.add.image(x, y, IMAGE_KEYS.propLightBeam)
+      .setAlpha(0.15)
+      .setDisplaySize(displaySize.width * 0.8, displaySize.height * 0.3)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(0);
+    
+    motionBlur.push(trail);
+    
+    scene.tweens.add({
+      targets: trail,
+      alpha: 0,
+      scaleX: 0.2,
+      scaleY: 0.2,
+      duration: 200,
+      ease: "Power2",
+      onComplete: () => {
+        const index = motionBlur.indexOf(trail);
+        if (index > -1) motionBlur.splice(index, 1);
+        trail.destroy();
+      }
+    });
+  };
+
+  const createImpactShockwave = (x: number, y: number, force: number) => {
+    const shockwave = scene.add.graphics({ x, y }).setDepth(2);
+    const radius = 20 + force * 0.1;
+    const color = force > 300 ? 0xff9cf7 : 0x4adeff;
+    
+    shockwave.lineStyle(3, color, 0.8);
+    shockwave.strokeCircle(0, 0, radius);
+    
+    scene.tweens.add({
+      targets: shockwave,
+      alpha: 0,
+      scaleX: 2,
+      scaleY: 2,
+      radius: radius * 2,
+      duration: 300 + force * 0.2,
+      ease: "Cubic.easeOut",
+      onComplete: () => shockwave.destroy()
+    });
+  };
+
   const playLandingSquash = () => {
     scene.tweens.killTweensOf(player);
     scene.tweens.add({
@@ -253,11 +319,14 @@ export function createPlayerStub(
     const body = player.body as Phaser.Physics.Arcade.Body;
     const grounded = body.blocked.down || body.touching.down;
     const currentTime = scene.time.now;
+    const speed = Math.sqrt(body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y);
     
     // Check for landing event (was in air, now on ground with significant impact)
     if (!previousGroundState && grounded && body.velocity.y > 50) {
       createLandingParticles(player.x, player.y + displaySize.height * 0.4);
       createLandingRing(player.x, player.y + displaySize.height * 0.45);
+      createImpactShockwave(player.x, player.y + displaySize.height * 0.45, Math.abs(body.velocity.y));
+      createEnergyAura(player.x, player.y, Math.min(1, Math.abs(body.velocity.y) / 200));
       playLandingSquash();
       scene.game.events.emit("playerLanded", {
         x: player.x,
@@ -266,15 +335,32 @@ export function createPlayerStub(
       });
     }
     
-    // Create movement trail when moving on ground
-    if (grounded && Math.abs(body.velocity.x) > 50 && currentTime - lastTrailSpawn > trailSpawnInterval) {
+    // Create enhanced movement trail when moving fast
+    if (grounded && Math.abs(body.velocity.x) > 80 && currentTime - lastTrailSpawn > trailSpawnInterval * 0.7) {
       createMovementTrail(player.x, player.y);
+      createMotionTrails(player.x, player.y, { x: body.velocity.x, y: body.velocity.y });
       lastTrailSpawn = currentTime;
     }
     
     // Check for jump event (was on ground, now in air with upward velocity)
     if (previousGroundState && !grounded && body.velocity.y < -100) {
       createJumpParticles(player.x, player.y + displaySize.height * 0.4);
+      createEnergyAura(player.x, player.y, 0.5);
+    }
+    
+    // Create motion blur during high-speed movement
+    if (speed > 150) {
+      createMotionTrails(player.x, player.y, { x: body.velocity.x, y: body.velocity.y });
+    }
+    
+    // Update light trail intensity based on speed
+    if (lightTrail) {
+      const intensity = Math.min(1, speed / 200);
+      lightTrail.setAlpha(0.12 + intensity * 0.18);
+      lightTrail.setDisplaySize(
+        displaySize.width * (0.9 + intensity * 0.2),
+        displaySize.height * (2.1 + intensity * 0.4)
+      );
     }
     
     // Update previous state for next frame

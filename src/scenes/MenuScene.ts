@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { transitionToGame } from "../core/scene/SceneController";
 import { UISystem } from "../core/ui/UISystem";
+import { GlassmorphismUI } from "../core/ui/GlassmorphismUI";
 
 /**
  * MenuScene:
@@ -9,6 +10,7 @@ import { UISystem } from "../core/ui/UISystem";
  */
 export class MenuScene extends Phaser.Scene {
   private uiSystem!: UISystem;
+  private glassUI!: GlassmorphismUI;
   private startButton!: Phaser.GameObjects.Container;
   private settingsButton!: Phaser.GameObjects.Container;
   private title!: Phaser.GameObjects.Text;
@@ -23,6 +25,7 @@ export class MenuScene extends Phaser.Scene {
     console.log("MenuScene: Creating enhanced menu");
     const { width, height } = this.scale;
     this.uiSystem = new UISystem(this);
+    this.glassUI = new GlassmorphismUI(this);
 
     // Animated background fade in
     this.cameras.main.fadeIn(500, 0, 0, 0);
@@ -105,7 +108,23 @@ export class MenuScene extends Phaser.Scene {
   private createTitle(): void {
     const { width, height } = this.scale;
     
-    // Main title with glow effect
+    // Create glassmorphism background for title
+    const titleBackground = this.glassUI.createGlassPanel({
+      width: 400,
+      height: 120,
+      backgroundColor: 0x0a1e3e,
+      borderColor: 0x12f7ff,
+      borderWidth: 2,
+      cornerRadius: 20,
+      blur: 15,
+      alpha: 0.9,
+      glowIntensity: 0.6,
+      gradientColors: [0x0a1e3e, 0x1a3f63]
+    });
+    titleBackground.setPosition(width / 2, height / 2 - 110);
+    titleBackground.setDepth(0);
+    
+    // Main title with enhanced glow effect
     this.title = this.uiSystem.createGlowingText("BIESYTOWER", width / 2, height / 2 - 110, {
       fontSize: "56px",
       color: "#12f7ff",
@@ -116,8 +135,24 @@ export class MenuScene extends Phaser.Scene {
     });
     this.title.setOrigin(0.5);
     this.title.setAlpha(1);
+    this.title.setDepth(1);
 
-    // Subtitle
+    // Subtitle with glassmorphism panel
+    const subtitleBackground = this.glassUI.createGlassPanel({
+      width: 300,
+      height: 60,
+      backgroundColor: 0x132b4d,
+      borderColor: 0xff9cf7,
+      borderWidth: 1,
+      cornerRadius: 12,
+      blur: 10,
+      alpha: 0.85,
+      glowIntensity: 0.4,
+      gradientColors: [0x132b4d, 0x2b3c7a]
+    });
+    subtitleBackground.setPosition(width / 2, height / 2 - 50);
+    subtitleBackground.setDepth(0);
+
     this.subtitle = this.uiSystem.createGlowingText("NEON ASCENT EDITION", width / 2, height / 2 - 50, {
       fontSize: "26px",
       color: "#ffe6ff",
@@ -129,37 +164,102 @@ export class MenuScene extends Phaser.Scene {
     });
     this.subtitle.setOrigin(0.5);
     this.subtitle.setAlpha(0.92);
+    this.subtitle.setDepth(1);
+
+    // Add animated glow particles around title
+    const titleGlow = this.glassUI.createAnimatedGlow(width / 2, height / 2 - 110, {
+      baseColor: 0x12f7ff,
+      glowColor: 0x7b2dff,
+      intensity: 0.8,
+      pulseSpeed: 2000,
+      glowRadius: 60
+    });
+    titleGlow.setDepth(-1);
   }
 
   private createMenuButtons(): void {
     const { width, height } = this.scale;
     
-    // Start button
-    this.startButton = this.uiSystem.createButton({
-      text: "START GAME",
-      x: width / 2,
-      y: height / 2 + 20,
-      fontSize: "18px",
-      backgroundColor: 0x0a0f2c,
-      textColor: "#12f7ff",
-      borderColor: 0x12f7ff,
-      onClick: () => this.startGame(),
-      onHover: () => this.playHoverSound(),
-      onHoverOut: () => this.playHoverOutSound()
+    // Enhanced start button with glassmorphism
+    this.startButton = this.glassUI.createGlassButton(
+      width / 2,
+      height / 2 + 20,
+      200,
+      50,
+      "START GAME",
+      {
+        backgroundColor: 0x0a1e3e,
+        borderColor: 0x12f7ff,
+        borderWidth: 2,
+        cornerRadius: 16,
+        blur: 12,
+        alpha: 0.9,
+        glowIntensity: 0.5,
+        gradientColors: [0x0a1e3e, 0x1a3f63]
+      }
+    );
+    this.startButton.setDepth(2);
+
+    // Enhanced settings button with glassmorphism
+    this.settingsButton = this.glassUI.createGlassButton(
+      width / 2,
+      height / 2 + 80,
+      180,
+      45,
+      "SETTINGS",
+      {
+        backgroundColor: 0x132b4d,
+        borderColor: 0x7b2dff,
+        borderWidth: 2,
+        cornerRadius: 14,
+        blur: 10,
+        alpha: 0.85,
+        glowIntensity: 0.4,
+        gradientColors: [0x132b4d, 0x2b3c7a]
+      }
+    );
+    this.settingsButton.setDepth(2);
+
+    // Add hover effects
+    this.setupButtonHoverEffects(this.startButton, 0x12f7ff);
+    this.setupButtonHoverEffects(this.settingsButton, 0x7b2dff);
+  }
+
+  private setupButtonHoverEffects(button: Phaser.GameObjects.Container, glowColor: number): void {
+    button.on('pointerover', () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 200,
+        ease: "Back.easeOut"
+      });
+
+      // Add glow effect on hover
+      const glow = this.glassUI.createAnimatedGlow(0, 0, {
+        baseColor: glowColor,
+        glowColor: glowColor,
+        intensity: 0.6,
+        pulseSpeed: 800,
+        glowRadius: 30
+      });
+      button.add(glow);
     });
 
-    // Settings button
-    this.settingsButton = this.uiSystem.createButton({
-      text: "SETTINGS",
-      x: width / 2,
-      y: height / 2 + 80,
-      fontSize: "16px",
-      backgroundColor: 0x120a2c,
-      textColor: "#ff4bf2",
-      borderColor: 0x7b2dff,
-      onClick: () => this.openSettings(),
-      onHover: () => this.playHoverSound(),
-      onHoverOut: () => this.playHoverOutSound()
+    button.on('pointerout', () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: "Back.easeOut"
+      });
+
+      // Remove glow effect
+      const glow = button.getAt(1);
+      if (glow) {
+        glow.destroy();
+      }
     });
   }
 

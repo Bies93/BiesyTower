@@ -73,16 +73,14 @@ export class GameScene extends Phaser.Scene {
     // Kamera: Start an fixierter niedriger Position, dann sanft zum Spieler übergehen
     const cam = this.cameras.main;
     cam.setZoom(1); // Standardzoom beibehalten, Fokus auf Spielfläche
-    cam.setScroll(0, height - 200); // Start an fixierter niedriger Position
-    cam.setLerp(0.08, 0.08); // Sanftere Nachführung für Übergang
+    cam.setScroll(0, height - 400); // Start an fixierter niedriger Position
+    cam.setLerp(0.05, 0.05); // Sehr sanfte Nachführung für flüssigen Übergang
     cam.roundPixels = true;
     cam.setBackgroundColor(baseGameConfig.colors.background);
     cam.fadeIn(250, 0, 0, 0);
     
-    // Verzögertes Starten des Camera Follow für sanften Übergang
-    this.time.delayedCall(2000, () => {
-      cam.startFollow(this.player, false, cam.lerp.x, cam.lerp.y);
-    });
+    // Sofortiges Starten des Camera Follow mit sanfter Nachführung
+    cam.startFollow(this.player, false, 0.05, 0.05);
 
     this.currentHeight = 0;
     this.game.events.emit("heightUpdate", this.currentHeight);
@@ -244,6 +242,11 @@ export class GameScene extends Phaser.Scene {
     this.updateScoreFromHeight();
     this.handleComboDecay(delta);
     this.checkHeightMilestones();
+
+    // Dynamische Kamera-Anpassung basierend auf Spielerhöhe
+    const cam = this.cameras.main;
+    const heightBasedLerp = Phaser.Math.Linear(0.05, 0.15, progress); // Langsamer bei niedriger Höhe, schneller bei höherer Höhe
+    cam.setLerp(heightBasedLerp, heightBasedLerp);
 
     const deathY = this.cameras.main.scrollY + this.scale.height + baseGameConfig.rules.deathMargin;
     if (this.player.y > deathY) {

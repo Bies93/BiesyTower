@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { PlatformTextureFactory } from "./PlatformTextureFactory";
+import { PlatformAnimator } from "./PlatformAnimator";
 import { PlatformType } from "./platformTypes";
 
 export interface Platform {
@@ -96,12 +97,14 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   private readonly safeSpacing = 90;
   private activePattern: { pattern: PlatformPattern; index: number } | null = null;
   private readonly textureFactory: PlatformTextureFactory;
+  private readonly platformAnimator: PlatformAnimator;
 
   constructor(scene: Phaser.Scene) {
     super();
     this.scene = scene;
     this.platformsGroup = this.scene.physics.add.staticGroup();
     this.textureFactory = new PlatformTextureFactory(scene);
+    this.platformAnimator = new PlatformAnimator(scene);
   }
 
   public initialize(startY: number): void {
@@ -146,7 +149,10 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   }
 
   private clearAll(): void {
-    this.platformList.forEach((platform) => platform.sprite.destroy());
+    this.platformList.forEach((platform) => {
+      this.platformAnimator.removePlatform(platform.sprite);
+      platform.sprite.destroy();
+    });
     this.platformList = [];
     this.platformsGroup.clear(true, true);
     this.activePattern = null;
@@ -441,6 +447,9 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     // Add visual enhancements for special platform types
     this.addPlatformVisualEffects(platform, type, textureKey);
 
+    // Add enhanced animations using PlatformAnimator
+    this.addPlatformAnimations(platform, type, actualWidth, config.height);
+
     return {
       sprite: platform,
       y,
@@ -512,12 +521,34 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     }
   }
 
+  private addPlatformAnimations(
+    platform: Phaser.Types.Physics.Arcade.ImageWithStaticBody,
+    type: PlatformType,
+    width: number,
+    height: number
+  ): void {
+    // Get the platform style from texture factory
+    const style = (this.textureFactory as any).PLATFORM_STYLES?.[type];
+    if (!style) return;
+
+    // Add platform to animator
+    this.platformAnimator.addPlatform({
+      type,
+      sprite: platform,
+      style,
+      width,
+      height
+    });
+  }
+
   private cleanupOldPlatforms(maxY: number): void {
     const keepPlatforms: Platform[] = [];
     for (const platform of this.platformList) {
       if (platform.y <= maxY) {
         keepPlatforms.push(platform);
       } else {
+        // Remove from animator before destroying
+        this.platformAnimator.removePlatform(platform.sprite);
         platform.sprite.destroy();
       }
     }

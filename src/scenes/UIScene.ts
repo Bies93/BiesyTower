@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { UISystem } from "../core/ui/UISystem";
+import { GlassmorphismUI } from "../core/ui/GlassmorphismUI";
 
 /**
  * UIScene / HUD:
@@ -10,15 +11,16 @@ import { UISystem } from "../core/ui/UISystem";
  */
 export class UIScene extends Phaser.Scene {
   private uiSystem!: UISystem;
+  private glassUI!: GlassmorphismUI;
   private hudContainer!: Phaser.GameObjects.Container;
   private hudBackdrop!: Phaser.GameObjects.Graphics;
   private hudHighlight!: Phaser.GameObjects.Rectangle;
   private heightValue!: Phaser.GameObjects.Text;
   private scoreValue!: Phaser.GameObjects.Text;
   private highScoreValue!: Phaser.GameObjects.Text;
-  private heightBackground!: Phaser.GameObjects.Rectangle;
-  private scoreBackground!: Phaser.GameObjects.Rectangle;
-  private highBackground!: Phaser.GameObjects.Rectangle;
+  private heightBackground!: Phaser.GameObjects.Container;
+  private scoreBackground!: Phaser.GameObjects.Container;
+  private highBackground!: Phaser.GameObjects.Container;
   private metricAccents: Phaser.GameObjects.Rectangle[] = [];
   private currentHeight: number = 0;
   private currentScore: number = 0;
@@ -41,6 +43,7 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     const { width } = this.scale;
     this.uiSystem = new UISystem(this);
+    this.glassUI = new GlassmorphismUI(this);
 
     const highScoreElement = document.getElementById("high-score-display");
     if (highScoreElement instanceof HTMLElement) {
@@ -95,18 +98,25 @@ export class UIScene extends Phaser.Scene {
 
   private createMinimalUI(): void {
     const { width } = this.scale;
-
-    // Create semi-transparent backgrounds for UI elements
-    const uiAlpha = 0.75;
     const uiPadding = 12;
-    const uiCornerRadius = 8;
+
+    // Create enhanced glassmorphism UI elements
     
-    // Height display (top-left)
-    this.heightBackground = this.add.rectangle(uiPadding + 60, uiPadding + 15, 120, 30, 0x04122a, uiAlpha)
-      .setStrokeStyle(1, 0x4adeff, 0.6)
-      .setOrigin(0.5, 0.5)
-      .setDepth(49)
-      .setScrollFactor(0);
+    // Height display (top-left) with glassmorphism
+    this.heightBackground = this.glassUI.createGlassPanel({
+      width: 120,
+      height: 30,
+      backgroundColor: 0x04122a,
+      borderColor: 0x4adeff,
+      borderWidth: 1,
+      cornerRadius: 8,
+      blur: 8,
+      alpha: 0.85,
+      glowIntensity: 0.3,
+      gradientColors: [0x04122a, 0x0a2842]
+    });
+    this.heightBackground.setPosition(uiPadding + 60, uiPadding + 15);
+    this.heightBackground.setDepth(49).setScrollFactor(0);
     
     this.heightValue = this.add.text(uiPadding + 60, uiPadding + 15, "0 m", {
       fontFamily: "'Segoe UI', sans-serif",
@@ -116,12 +126,21 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 1
     }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-    // Score display (top-right)
-    this.scoreBackground = this.add.rectangle(width - uiPadding - 60, uiPadding + 15, 120, 30, 0x04122a, uiAlpha)
-      .setStrokeStyle(1, 0x6be8ff, 0.6)
-      .setOrigin(0.5, 0.5)
-      .setDepth(49)
-      .setScrollFactor(0);
+    // Score display (top-right) with enhanced glassmorphism
+    this.scoreBackground = this.glassUI.createGlassPanel({
+      width: 120,
+      height: 30,
+      backgroundColor: 0x04122a,
+      borderColor: 0x6be8ff,
+      borderWidth: 1,
+      cornerRadius: 8,
+      blur: 8,
+      alpha: 0.85,
+      glowIntensity: 0.4,
+      gradientColors: [0x04122a, 0x0a2842]
+    });
+    this.scoreBackground.setPosition(width - uiPadding - 60, uiPadding + 15);
+    this.scoreBackground.setDepth(49).setScrollFactor(0);
     
     this.scoreValue = this.add.text(width - uiPadding - 60, uiPadding + 15, "0", {
       fontFamily: "'Segoe UI', sans-serif",
@@ -131,12 +150,21 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 1
     }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-    // High score display (top-center)
-    this.highBackground = this.add.rectangle(width / 2, uiPadding + 15, 140, 30, 0x132b4d, uiAlpha)
-      .setStrokeStyle(1, 0xff9cf7, 0.6)
-      .setOrigin(0.5, 0.5)
-      .setDepth(49)
-      .setScrollFactor(0);
+    // High score display (top-center) with special glassmorphism styling
+    this.highBackground = this.glassUI.createGlassPanel({
+      width: 140,
+      height: 30,
+      backgroundColor: 0x132b4d,
+      borderColor: 0xff9cf7,
+      borderWidth: 1,
+      cornerRadius: 10,
+      blur: 10,
+      alpha: 0.9,
+      glowIntensity: 0.5,
+      gradientColors: [0x132b4d, 0x2b3c7a]
+    });
+    this.highBackground.setPosition(width / 2, uiPadding + 15);
+    this.highBackground.setDepth(49).setScrollFactor(0);
     
     this.highScoreValue = this.add.text(width / 2, uiPadding + 15, "HIGH: 0", {
       fontFamily: "'Segoe UI', sans-serif",
@@ -145,6 +173,10 @@ export class UIScene extends Phaser.Scene {
       stroke: "#000000",
       strokeThickness: 1
     }).setDepth(50).setScrollFactor(0).setOrigin(0.5, 0.5);
+
+    // Add ambient glass particles for enhanced visual appeal
+    const glassParticles = this.glassUI.createGlassParticles(width / 2, 100, 8);
+    glassParticles.setDepth(48).setScrollFactor(0);
 
     this.updateHighScoreDisplay();
   }
@@ -272,21 +304,35 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateHeightDisplay(): void {
+    // Enhanced animation with glassmorphism effects
     this.tweens.add({
       targets: this.heightValue,
-      scaleX: 1.15,
-      scaleY: 1.15,
-      duration: 180,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 200,
       yoyo: true,
-      ease: "Power2",
+      ease: "Back.easeOut",
     });
+
+    // Create enhanced number spark with glow effect
+    const heightBounds = this.heightValue.getBounds();
+    this.createEnhancedNumberSpark(heightBounds.centerX, heightBounds.centerY, 0x4adeff);
+
+    // Add temporary glow to height panel
+    const heightPanel = this.heightBackground.first as Phaser.GameObjects.Graphics;
+    if (heightPanel) {
+      this.tweens.add({
+        targets: heightPanel,
+        alpha: 1,
+        duration: 150,
+        yoyo: true,
+        ease: "Sine.easeOut"
+      });
+    }
 
     const formatted = `${this.currentHeight} m`;
     this.heightValue.setText(formatted);
     this.updateDomMetric(this.heightDisplayEl, formatted, true);
-
-    const heightBounds = this.heightValue.getBounds();
-    this.createNumberSpark(heightBounds.centerX, heightBounds.centerY);
   }
 
   private updateScoreDisplay(delta = 0): void {
@@ -297,12 +343,59 @@ export class UIScene extends Phaser.Scene {
       scaleY: scaleBoost,
       duration: 220,
       yoyo: true,
-      ease: "Power2",
+      ease: "Back.easeOut",
     });
+
+    // Add temporary glow effect to score panel
+    const scorePanel = this.scoreBackground.first as Phaser.GameObjects.Graphics;
+    if (scorePanel && delta > 25) {
+      this.tweens.add({
+        targets: scorePanel,
+        alpha: 1,
+        duration: 150,
+        yoyo: true,
+        ease: "Sine.easeOut"
+      });
+    }
 
     const formatted = this.formatScore(this.currentScore);
     this.scoreValue.setText(formatted);
     this.updateDomMetric(this.scoreDisplayEl, formatted, delta > 0);
+  }
+
+  private createEnhancedNumberSpark(x: number, y: number, color: number): void {
+    const spark = this.add.circle(x, y, 3, color, 0.8)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(85);
+    
+    // Add glow rings
+    for (let i = 1; i <= 2; i++) {
+      const ring = this.add.graphics({ x, y }).setDepth(84 - i);
+      ring.lineStyle(2, color, 0.4 / i);
+      ring.strokeCircle(0, 0, 4 + i * 3);
+      
+      this.tweens.add({
+        targets: ring,
+        alpha: 0,
+        scaleX: 2 + i,
+        scaleY: 1 + i * 0.5,
+        duration: 300 + i * 100,
+        ease: "Quad.easeOut",
+        onComplete: () => ring.destroy()
+      });
+    }
+
+    // Animate main spark
+    this.tweens.add({
+      targets: spark,
+      alpha: 0,
+      scaleX: 2,
+      scaleY: 2,
+      y: y - 30,
+      duration: 600,
+      ease: "Power2",
+      onComplete: () => spark.destroy()
+    });
   }
 
   private updateHighScoreDisplay(pulse = false): void {
@@ -467,15 +560,24 @@ export class UIScene extends Phaser.Scene {
       100,
       progress * 100
     );
-    this.heightBackground.setFillStyle(
-      Phaser.Display.Color.GetColor(heightFill.r, heightFill.g, heightFill.b),
-      0.82 + progress * 0.1
-    );
-    this.heightBackground.setStrokeStyle(
-      1.6,
-      Phaser.Display.Color.GetColor(heightAccent.r, heightAccent.g, heightAccent.b),
-      0.52 + progress * 0.25
-    );
+    // Update glassmorphism panels with dynamic colors
+    const heightPanel = this.heightBackground.first as Phaser.GameObjects.Graphics;
+    if (heightPanel) {
+      heightPanel.clear();
+      heightPanel.fillGradientStyle(
+        heightFill.r,
+        heightFill.g,
+        heightFill.b,
+        0.82 + progress * 0.1
+      );
+      heightPanel.fillRoundedRect(-60, -15, 120, 30, 8);
+      heightPanel.lineStyle(
+        1.6,
+        Phaser.Display.Color.GetColor(heightAccent.r, heightAccent.g, heightAccent.b),
+        0.52 + progress * 0.25
+      );
+      heightPanel.strokeRoundedRect(-60, -15, 120, 30, 8);
+    }
     if (this.metricAccents[0]) {
       this.metricAccents[0].setFillStyle(
         Phaser.Display.Color.GetColor(heightAccent.r, heightAccent.g, heightAccent.b),
@@ -495,15 +597,25 @@ export class UIScene extends Phaser.Scene {
       100,
       progress * 100
     );
-    this.scoreBackground.setFillStyle(
-      Phaser.Display.Color.GetColor(scoreFill.r, scoreFill.g, scoreFill.b),
-      0.82 + progress * 0.12
-    );
-    this.scoreBackground.setStrokeStyle(
-      1.6,
-      Phaser.Display.Color.GetColor(scoreAccent.r, scoreAccent.g, scoreAccent.b),
-      0.5 + progress * 0.28
-    );
+    
+    // Update score glassmorphism panel
+    const scorePanel = this.scoreBackground.first as Phaser.GameObjects.Graphics;
+    if (scorePanel) {
+      scorePanel.clear();
+      scorePanel.fillGradientStyle(
+        scoreFill.r,
+        scoreFill.g,
+        scoreFill.b,
+        0.82 + progress * 0.12
+      );
+      scorePanel.fillRoundedRect(-60, -15, 120, 30, 8);
+      scorePanel.lineStyle(
+        1.6,
+        Phaser.Display.Color.GetColor(scoreAccent.r, scoreAccent.g, scoreAccent.b),
+        0.5 + progress * 0.28
+      );
+      scorePanel.strokeRoundedRect(-60, -15, 120, 30, 8);
+    }
     if (this.metricAccents[1]) {
       this.metricAccents[1].setFillStyle(
         Phaser.Display.Color.GetColor(scoreAccent.r, scoreAccent.g, scoreAccent.b),
@@ -523,15 +635,25 @@ export class UIScene extends Phaser.Scene {
       100,
       progress * 100
     );
-    this.highBackground.setFillStyle(
-      Phaser.Display.Color.GetColor(highFill.r, highFill.g, highFill.b),
-      0.84 + progress * 0.12
-    );
-    this.highBackground.setStrokeStyle(
-      1.8,
-      Phaser.Display.Color.GetColor(highAccent.r, highAccent.g, highAccent.b),
-      0.6 + progress * 0.25
-    );
+    
+    // Update high score glassmorphism panel
+    const highPanel = this.highBackground.first as Phaser.GameObjects.Graphics;
+    if (highPanel) {
+      highPanel.clear();
+      highPanel.fillGradientStyle(
+        highFill.r,
+        highFill.g,
+        highFill.b,
+        0.84 + progress * 0.12
+      );
+      highPanel.fillRoundedRect(-70, -15, 140, 30, 10);
+      highPanel.lineStyle(
+        1.8,
+        Phaser.Display.Color.GetColor(highAccent.r, highAccent.g, highAccent.b),
+        0.6 + progress * 0.25
+      );
+      highPanel.strokeRoundedRect(-70, -15, 140, 30, 10);
+    }
     if (this.metricAccents[2]) {
       this.metricAccents[2].setFillStyle(
         Phaser.Display.Color.GetColor(highAccent.r, highAccent.g, highAccent.b),
