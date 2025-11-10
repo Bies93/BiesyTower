@@ -194,6 +194,29 @@ const PLATFORM_STYLES: Record<PlatformType, PlatformStyle> = {
     glowIntensity: 0.2,
     particleEffect: false,
   },
+  magnetic: {
+    palette: {
+      top: 0xffd966,
+      mid: 0xffb84d,
+      bottom: 0x8c5a00,
+      rim: 0xffe480,
+      accent: 0xffa500,
+      glow: 0xffc04d,
+      emissive: 0xffd066,
+    },
+    material: {
+      metallic: 0.8,
+      roughness: 0.3,
+      emissive: 0.6,
+      transparency: 0.1,
+      refraction: 0.2,
+    },
+    pattern: "energy",
+    noiseAlpha: 0.1,
+    animationType: "pulse",
+    glowIntensity: 0.5,
+    particleEffect: true,
+  },
 };
 
 const WIDTH_BUCKET = 24;
@@ -215,7 +238,7 @@ export class PlatformTextureFactory {
   }
 
   private createTexture(key: string, type: PlatformType, width: number, height: number): void {
-    const style = PLATFORM_STYLES[type];
+    let style = PLATFORM_STYLES[type];
     
     // Debug: Überprüfe ob style existiert
     if (!style) {
@@ -226,6 +249,7 @@ export class PlatformTextureFactory {
         console.error("PlatformTextureFactory: No fallback style available");
         return;
       }
+      style = fallbackStyle; // Assign fallback style to style variable
       console.warn(`PlatformTextureFactory: Using fallback style for "${type}"`);
     }
     
