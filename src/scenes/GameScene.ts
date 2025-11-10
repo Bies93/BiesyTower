@@ -32,6 +32,10 @@ export class GameScene extends Phaser.Scene {
   private milestoneStep = 100;
   private cameraFollowOffsetStart = 0;
   private cameraFollowOffsetEnd = 0;
+  private cameraCatchUpActive = false;
+  private cameraCatchUpTargetY = 0;
+  private cameraCatchUpDuration = 0;
+  private cameraCatchUpStartTime = 0;
 
   constructor() {
     super({ key: "GameScene" });
@@ -49,15 +53,16 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.physics.world.setBounds(0, -Infinity, width, Infinity);
 
-    // Starte knapp oberhalb des unteren Viewport-Randes, damit die Plattformen von unten beginnen
-    const bottomBuffer = Math.max(32, Math.round(height * 0.02)); // ~2-3 cm über dem Rand
+    // Starte DEUTLICH weiter oben im Viewport, damit die Plattformen von ganz unten beginnen
+    const bottomBuffer = Math.max(80, Math.round(height * 0.12)); // ~12% vom unteren Rand (deutlich höher)
     const startPlayerY = height - bottomBuffer;
     this.player = createPlayerStub(this, width / 2, startPlayerY);
     this.startY = this.player.y;
 
-    // Plattformen direkt von ganz unten aus generieren lassen (neue Startposition)
+    // Plattformen von VIEL weiter unten aus generieren lassen für dramatischen Effekt
     this.platformManager = createPlatformManagerStub(this);
-    this.platformManager.initialize(this.startY);
+    const platformStartY = this.startY + 800; // Plattformen starten 800px weiter unten
+    this.platformManager.initialize(platformStartY);
 
     // Create visual boundaries for left and right edges
     this.createVisualBoundaries();
@@ -73,24 +78,36 @@ export class GameScene extends Phaser.Scene {
       this
     );
 
-    // Kamera: Start an fixierter niedriger Position, dann sanft zum Spieler übergehen
-    const cameraOffsetStart = -Math.round(Math.max(180, height * 0.18));
+    // Kamera: Startet AM ABSOLUTEN UNTEREN RAND, dann dynamisch zum Spieler "hochjagen"
+    const cameraOffsetStart = -Math.round(Math.max(200, height * 0.22)); // Deutlich weiter unten starten
     const cameraOffsetEnd = -Math.round(Math.max(32, height * 0.04));
     this.cameraFollowOffsetStart = cameraOffsetStart;
     this.cameraFollowOffsetEnd = cameraOffsetEnd;
-    const startScrollY = Math.max(0, startPlayerY - height + Math.round(bottomBuffer * 0.6));
+    const startScrollY = 0; // Kamera startet am absoluten unteren Rand (scrollY = 0)
 
     const cam = this.cameras.main;
     cam.setZoom(1); // Standardzoom behalten, Fokus auf Spielfläche
-    cam.setLerp(0.06, 0.06); // Grund-Lerp für sanftes Folgen
+    cam.setLerp(0.02, 0.02); // Sehr träge initially für dramatischen Catch-up
     cam.roundPixels = true;
     cam.setBackgroundColor(baseGameConfig.colors.background);
-    cam.setScroll(0, startScrollY);
+    cam.setScroll(0, 0); // Kamera startet am absoluten unteren Rand
     cam.setFollowOffset(0, cameraOffsetStart);
-    cam.fadeIn(250, 0, 0, 0);
+    cam.fadeIn(300, 0, 0, 0);
+    // Kein startFollow hier - nur nach Abschluss des Catch-ups starten
 
-    // Kamera startet unten und folgt mit sanfter Verzögerung
-    cam.startFollow(this.player, false, 0.06, 0.06);
+    // Kamera startet fixiert am unteren Rand - kein Following zum Start!
+    this.cameraCatchUpActive = true;
+    this.cameraCatchUpTargetY = startPlayerY - height * 0.4; // Ziel: 40% über Spielerposition
+    this.cameraCatchUpDuration = 2500; // 2.5 Sekunden für den Catch-up
+    this.cameraCatchUpStartTime = 0;
+    
+    // Warte kurz, dann beginne den dynamischen Catch-up - ABER nur beim echten Start!
+    this.time.delayedCall(800, () => {
+      if (!this.isEnding) { // Sicherstellen, dass wir nicht beim Game Over sind
+        this.cameraCatchUpStartTime = this.time.now;
+        this.startCameraCatchUp();
+      }
+    }, this);
 
     this.currentHeight = 0;
     this.game.events.emit("heightUpdate", this.currentHeight);
@@ -105,6 +122,7 @@ export class GameScene extends Phaser.Scene {
     this.lastLandingTimestamp = 0;
     this.nextMilestone = 100;
     this.milestoneStep = 100;
+    this.cameraCatchUpActive = true; // Bleibt aktiv bis Catch-up beendet ist
     this.game.events.on("playerLanded", this.handlePlayerLanding, this);
     this.game.events.on("bonusPoints", this.handleBonusPoints, this);
     this.game.events.on("playerDamage", this.handlePlayerDamage, this);
@@ -256,29 +274,36 @@ export class GameScene extends Phaser.Scene {
     this.handleComboDecay(delta);
     this.checkHeightMilestones();
 
-    // Dynamische Kamera-Anpassung basierend auf Spielerhöhe
-    const ascendProgress = Phaser.Math.Clamp(
-      this.currentHeight / (this.scale.height * 0.65),
-      0,
-      1
-    );
-    const cameraEase = ascendProgress * ascendProgress;
-    const baseLerp = Phaser.Math.Linear(0.05, 0.22, cameraEase);
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    const velocityLead = Phaser.Math.Clamp(body.velocity.y * 0.04, -60, 60);
-    const leadInfluence = Phaser.Math.Linear(1, 0.3, cameraEase);
-    const baseOffset = Phaser.Math.Linear(
-      this.cameraFollowOffsetStart,
-      this.cameraFollowOffsetEnd,
-      cameraEase
-    );
-    const offsetMin = Math.min(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) - 60;
-    const offsetMax = Math.max(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) + 40;
-    cam.setLerp(baseLerp, baseLerp);
-    cam.setFollowOffset(
-      0,
-      Phaser.Math.Clamp(baseOffset + velocityLead * leadInfluence, offsetMin, offsetMax)
-    );
+    // Dynamische Kamera-Catch-up Logik
+    if (this.cameraCatchUpActive) {
+      this.updateCameraCatchUp(time, delta);
+    }
+
+    // Dynamische Kamera-Anpassung basierend auf Spielerhöhe - ABER NICHT während Catch-up!
+    if (!this.cameraCatchUpActive) {
+      const ascendProgress = Phaser.Math.Clamp(
+        this.currentHeight / (this.scale.height * 0.65),
+        0,
+        1
+      );
+      const cameraEase = ascendProgress * ascendProgress;
+      const baseLerp = Phaser.Math.Linear(0.05, 0.22, cameraEase);
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      const velocityLead = Phaser.Math.Clamp(body.velocity.y * 0.04, -60, 60);
+      const leadInfluence = Phaser.Math.Linear(1, 0.3, cameraEase);
+      const baseOffset = Phaser.Math.Linear(
+        this.cameraFollowOffsetStart,
+        this.cameraFollowOffsetEnd,
+        cameraEase
+      );
+      const offsetMin = Math.min(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) - 60;
+      const offsetMax = Math.max(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) + 40;
+      cam.setLerp(baseLerp, baseLerp);
+      cam.setFollowOffset(
+        0,
+        Phaser.Math.Clamp(baseOffset + velocityLead * leadInfluence, offsetMin, offsetMax)
+      );
+    }
 
     const deathY = cam.scrollY + this.scale.height + baseGameConfig.rules.deathMargin;
     if (this.player.y > deathY) {
@@ -346,6 +371,10 @@ export class GameScene extends Phaser.Scene {
     this.score = 0;
     this.passiveHeightScore = 0;
     this.game.events.emit("scoreUpdate", this.score);
+    
+    // STOPPE alle aktiven Catch-up Animationen sofort beim Game Over
+    this.cameraCatchUpActive = false;
+    
     this.cameras.main.fadeOut(350, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       transitionToMenu(this);
@@ -594,5 +623,70 @@ export class GameScene extends Phaser.Scene {
     
     // Could add health system here
     console.log(`Player took ${amount} damage`);
+  }
+
+  private startCameraCatchUp(): void {
+    console.log("GameScene: Starting dynamic camera catch-up animation");
+    
+    const cam = this.cameras.main;
+    const { height } = this.scale;
+
+    // Gewünschte Ziel-Scroll-Position, die den Spieler mit aktuellem Offset zeigt
+    const targetScrollY = this.player.y - (height / 2) - this.cameraFollowOffsetStart;
+
+    this.tweens.add({
+      targets: cam,
+      scrollY: targetScrollY,
+      duration: this.cameraCatchUpDuration,
+      ease: "Sine.easeInOut",
+      onUpdate: () => {
+        // Dynamische Anpassung des Follow-Offsets für dramatischen Effekt
+        const t = Phaser.Math.Easing.Sine.Out(
+          Math.min((this.time.now - this.cameraCatchUpStartTime) / this.cameraCatchUpDuration, 1)
+        );
+        const dynOffset = Phaser.Math.Linear(
+          this.cameraFollowOffsetStart,
+          this.cameraFollowOffsetEnd,
+          t * 0.7
+        );
+        cam.setFollowOffset(0, dynOffset);
+      },
+      onComplete: () => {
+        // Jetzt erst dynamisches Follow aktivieren
+        this.cameraCatchUpActive = false;
+        cam.setLerp(0.12, 0.18); // Finaler, sanfter Lerp
+        cam.startFollow(this.player, false, 0.12, 0.18);
+        cam.setFollowOffset(0, this.cameraFollowOffsetEnd);
+        console.log("GameScene: Camera catch-up completed, dynamic following active");
+      }
+    });
+  }
+
+  private updateCameraCatchUp(time: number, delta: number): void {
+    const cam = this.cameras.main;
+    const elapsed = time - this.cameraCatchUpStartTime;
+    
+    if (elapsed < this.cameraCatchUpDuration) {
+      // Berechne progress der Catch-up Animation
+      const progress = Math.min(elapsed / this.cameraCatchUpDuration, 1);
+      
+      // Sanfte Beschleunigung der Kamera-Bewegung
+      const easedProgress = progress * progress * (3 - 2 * progress); // Cubic ease
+      
+      // Dynamische Anpassung des Follow-Offsets für dramatischen Effekt
+      const dynamicOffset = Phaser.Math.Linear(
+        this.cameraFollowOffsetStart,
+        this.cameraFollowOffsetEnd,
+        easedProgress * 0.7 // Langsamere Offset-Änderung
+      );
+      
+      cam.setFollowOffset(0, dynamicOffset);
+      
+      // Optional: Leichte Zoom-Änderung für dramatische Wirkung
+      if (progress > 0.3) {
+        const zoomLevel = Phaser.Math.Linear(1, 1.05, (progress - 0.3) * 1.4);
+        cam.setZoom(Math.min(zoomLevel, 1.08));
+      }
+    }
   }
 }

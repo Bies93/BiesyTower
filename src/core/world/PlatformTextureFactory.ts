@@ -216,6 +216,19 @@ export class PlatformTextureFactory {
 
   private createTexture(key: string, type: PlatformType, width: number, height: number): void {
     const style = PLATFORM_STYLES[type];
+    
+    // Debug: Überprüfe ob style existiert
+    if (!style) {
+      console.error(`PlatformTextureFactory: No style found for platform type "${type}"`);
+      // Fallback zu normal style
+      const fallbackStyle = PLATFORM_STYLES.normal;
+      if (!fallbackStyle) {
+        console.error("PlatformTextureFactory: No fallback style available");
+        return;
+      }
+      console.warn(`PlatformTextureFactory: Using fallback style for "${type}"`);
+    }
+    
     const gfx = this.scene.make.graphics({ add: false });
     const drawWidth = width * RETINA_SCALE;
     const drawHeight = height * RETINA_SCALE;
@@ -363,7 +376,7 @@ export class PlatformTextureFactory {
     height: number,
     radius: number
   ): void {
-    const { palette, material } = style;
+    const { palette, material } = style || PLATFORM_STYLES.normal;
     
     // Base gradient with material influence
     const topColor = this.adjustColorForMaterial(palette.top, material);
@@ -393,7 +406,7 @@ export class PlatformTextureFactory {
     height: number,
     radius: number
   ): void {
-    const { palette, material, glowIntensity = 0.3 } = style;
+    const { palette, material, glowIntensity = 0.3 } = style || PLATFORM_STYLES.normal;
     
     // Outer glow for emissive materials
     if (material.emissive > 0.2) {
@@ -419,7 +432,7 @@ export class PlatformTextureFactory {
     height: number,
     radius: number
   ): void {
-    const { palette, material } = style;
+    const { palette, material } = style || PLATFORM_STYLES.normal;
     
     // Enhanced depth accent
     gfx.fillStyle(palette.accent, 0.9 - material.transparency * 0.3);

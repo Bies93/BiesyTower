@@ -125,14 +125,15 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.startY = startY;
     this.lastGeneratedY = startY;
 
+    // Erzeuge Basis-Plattform DEUTLICH weiter unten für dramatischen "Turm"-Effekt
     this.createBasePlatform(this.scene.scale.width / 2, startY, this.scene.scale.width * 0.8);
-    this.generateSafeRunway();
-    this.generatePlatformsUpTo(this.lastGeneratedY - 2000);
+    this.generateExtendedSafeRunway(); // Verlängerte Startphase
+    this.generatePlatformsUpTo(this.lastGeneratedY - 4000); // Generiere viel weiter nach oben
   }
 
   public update(camera: Phaser.Cameras.Scene2D.Camera, time: number, delta: number): void {
-    // Ensure camera is valid
-    if (!camera || !camera.scrollY) {
+    // Ensure camera is valid - allow scrollY === 0
+    if (!camera || !Number.isFinite(camera.scrollY)) {
       console.warn("Invalid camera in PlatformManager.update");
       return;
     }
@@ -264,6 +265,46 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     }
 
     this.lastGeneratedY = currentY;
+  }
+
+  private generateExtendedSafeRunway(): void {
+    const baseX = this.scene.scale.width / 2;
+    let currentY = this.startY - this.safeSpacing;
+
+    // Verlängerte Startphase: 8 statt 5 Plattformen für mehr Puffer
+    const extendedSafeCount = 8;
+    for (let i = 0; i < extendedSafeCount; i += 1) {
+      const width = Phaser.Math.Linear(this.scene.scale.width * 0.8, this.scene.scale.width * 0.6, i / extendedSafeCount);
+      const offset = Phaser.Math.Between(-80, 80);
+      const clampedX = Phaser.Math.Clamp(baseX + offset, width * 0.5 + 20, this.scene.scale.width - width * 0.5 - 20);
+      
+      // Besonders sichere Start-Plattformen
+      const type: PlatformType = i < 3 ? "wide" : i < 5 ? "normal" : "wide";
+      const platform = this.createPlatform(clampedX, currentY, width, type);
+      this.platformList.push(platform);
+      currentY -= this.safeSpacing * 0.9; // Etwas dichtere Plattformen zu Beginn
+    }
+
+    this.lastGeneratedY = currentY;
+    
+    // Zusätzliche "Turm"-Plattformen für dramatischen Starteffekt
+    this.generateTowerFoundation(currentY - 200);
+  }
+
+  private generateTowerFoundation(startY: number): void {
+    let currentY = startY;
+    const foundationCount = 6; // Zusätzliche 6 Plattformen für "Turm"-Effekt
+    
+    for (let i = 0; i < foundationCount; i += 1) {
+      const width = Phaser.Math.Linear(this.scene.scale.width * 0.7, this.scene.scale.width * 0.45, i / foundationCount);
+      const x = this.scene.scale.width / 2 + Phaser.Math.Between(-100, 100);
+      const clampedX = Phaser.Math.Clamp(x, width * 0.5 + 30, this.scene.scale.width - width * 0.5 - 30);
+      const type: PlatformType = i < 2 ? "wide" : "normal";
+      
+      const platform = this.createPlatform(clampedX, currentY, width, type);
+      this.platformList.push(platform);
+      currentY -= Phaser.Math.Between(110, 140); // Zufälligere Abstände für natürlichen Turm-Effekt
+    }
   }
 
   private getPlatformDataForHeight(height: number): {
