@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { transitionToGame } from "../core/scene/SceneController";
 import { UISystem } from "../core/ui/UISystem";
 import { GlassmorphismUI } from "../core/ui/GlassmorphismUI";
+import { IMAGE_KEYS } from "../assets/assetManifest";
 
 /**
  * MenuScene:
@@ -284,6 +285,8 @@ export class MenuScene extends Phaser.Scene {
     // Mouse/touch input on buttons
     this.startButton.setInteractive();
     this.settingsButton.setInteractive();
+    this.startButton.on("pointerup", () => this.startGame());
+    this.settingsButton.on("pointerup", () => this.openSettings());
   }
 
   private startGame(): void {
@@ -318,7 +321,7 @@ export class MenuScene extends Phaser.Scene {
 
   private createStartBurst(): void {
     // Particle burst effect
-    const burst = this.add.particles(0, 0, 'particle', {
+    const burst = this.add.particles(0, 0, IMAGE_KEYS.particle, {
       x: this.scale.width / 2,
       y: this.scale.height / 2 + 20,
       quantity: 10,

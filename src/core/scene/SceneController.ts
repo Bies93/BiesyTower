@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-type ManagedSceneKey = "BootScene" | "MenuScene" | "GameScene" | "UIScene";
+type ManagedSceneKey = "BootScene" | "IndustrialMenuScene" | "MenuScene" | "GameScene" | "UIScene";
 
 function stopIfRunning(scenePlugin: Phaser.Scenes.ScenePlugin, key: ManagedSceneKey): void {
   if (scenePlugin.isActive(key) || scenePlugin.isSleeping(key) || scenePlugin.isPaused(key)) {
@@ -11,11 +11,11 @@ function stopIfRunning(scenePlugin: Phaser.Scenes.ScenePlugin, key: ManagedScene
 export function transitionToMenu(scene: Phaser.Scene): void {
   const manager = scene.scene;
   stopIfRunning(manager, "UIScene");
-  if (scene.scene.key === "MenuScene") {
+  if (scene.scene.key === "IndustrialMenuScene") {
     scene.scene.restart();
     return;
   }
-  manager.start("MenuScene");
+  manager.start("IndustrialMenuScene");
 }
 
 export function transitionToGame(scene: Phaser.Scene, data?: Record<string, unknown>): void {

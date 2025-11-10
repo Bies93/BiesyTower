@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <title>BiesyTower</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBgOb7nc8AAAAASUVORK5CYII="
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
@@ -18,10 +23,10 @@
       body {
         width: 100%;
         height: 100%;
-        background: radial-gradient(circle at top, #101826, #050814 70%);
+        background: radial-gradient(circle at top, #1a202c, #0f0f0f 70%);
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
-        color: #e9f3ff;
+        color: #f0f4f8;
         overflow: hidden;
       }
       #app {
@@ -39,12 +44,12 @@
         padding: 12px 14px 16px;
         background: linear-gradient(
           155deg,
-          rgba(40, 70, 120, 0.32),
-          rgba(4, 14, 32, 0.92)
+          rgba(74, 85, 104, 0.4),
+          rgba(26, 32, 44, 0.8)
         );
         box-shadow:
-          0 22px 70px rgba(0, 0, 0, 0.55),
-          0 0 38px rgba(120, 200, 255, 0.16) inset;
+          0 22px 70px rgba(0, 0, 0, 0.6),
+          0 0 38px rgba(139, 69, 19, 0.2) inset;
         backdrop-filter: blur(16px);
         display: flex;
         flex-direction: column;
@@ -55,9 +60,9 @@
         position: absolute;
         inset: 8px;
         border-radius: 14px;
-        border: 1px solid rgba(74, 222, 255, 0.16);
+        border: 1px solid rgba(139, 69, 19, 0.3);
         pointer-events: none;
-        box-shadow: 0 0 30px rgba(74, 222, 255, 0.15);
+        box-shadow: 0 0 30px rgba(139, 69, 19, 0.2);
       }
       #phaser-container {
         flex: 1;

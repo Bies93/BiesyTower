@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 import { BootScene } from "./scenes/BootScene";
 import { MenuScene } from "./scenes/MenuScene";
+import { IndustrialMenuScene } from "./scenes/IndustrialMenuScene";
 import { GameScene } from "./scenes/GameScene";
 import { UIScene } from "./scenes/UIScene";
 import { baseGameConfig } from "./config/gameConfig";
@@ -24,7 +25,7 @@ function createGame() {
         debug: isDebug,
       },
     },
-    scene: [BootScene, MenuScene, GameScene, UIScene],
+    scene: [BootScene, IndustrialMenuScene, GameScene, UIScene],
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

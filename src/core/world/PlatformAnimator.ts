@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { PlatformType } from "./platformTypes";
 import { PlatformTextureFactory, PlatformStyle } from "./PlatformTextureFactory";
+import { IMAGE_KEYS } from "../../assets/assetManifest";
 
 export interface PlatformAnimationConfig {
   type: PlatformType;
@@ -100,7 +101,7 @@ export class PlatformAnimator {
     const { sprite, style, type } = config;
     
     // Create particle emitter based on platform type
-    const emitter = this.scene.add.particles(0, 0, 'particle', {
+    const emitter = this.scene.add.particles(0, 0, IMAGE_KEYS.particle, {
       x: sprite.x,
       y: sprite.y - sprite.displayHeight * 0.3,
       speed: { min: 10, max: 30 },

@@ -19,19 +19,19 @@ export class BootScene extends Phaser.Scene {
     const title = this.add
       .text(width / 2, height / 2 - 80, "BIESYTOWER", {
         fontSize: "24px",
-        color: "#12f7ff",
+        color: "#f0f4f8",
         fontStyle: "bold",
         align: "center",
-        stroke: "#7b2dff",
-        strokeThickness: 3,
+        stroke: "#4a5568",
+        strokeThickness: 2,
       })
       .setOrigin(0.5);
-    title.setShadow(0, 0, "#7b2dff", 16, true, true);
+    title.setShadow(1, 1, "#000000", 8, true, true);
 
     this.add
-      .text(width / 2, title.y + 28, "Pre-Alpha Build", {
+      .text(width / 2, title.y + 28, "", {
         fontSize: "12px",
-        color: "#ffe6ff",
+        color: "#8b0000",
       })
       .setOrigin(0.5);
 
@@ -40,26 +40,26 @@ export class BootScene extends Phaser.Scene {
     const barY = height / 2 + 12;
 
     this.add
-      .rectangle(barX, barY, barWidth, 12, 0x0b1730)
-      .setStrokeStyle(2, 0x17315a, 0.9)
+      .rectangle(barX, barY, barWidth, 12, 0x2d3748)
+      .setStrokeStyle(2, 0x4a5568, 0.8)
       .setOrigin(0.5);
 
     const progressBar = this.add
-      .rectangle(barX - barWidth / 2, barY, barWidth, 12, 0x12f7ff)
+      .rectangle(barX - barWidth / 2, barY, barWidth, 12, 0x4a5568)
       .setOrigin(0, 0.5);
     progressBar.scaleX = 0;
 
     const percentText = this.add
       .text(barX, barY - 18, "0%", {
         fontSize: "12px",
-        color: "#e9f3ff",
+        color: "#f0f4f8",
       })
       .setOrigin(0.5);
 
     const statusText = this.add
       .text(barX, barY + 24, "Lade Assets ...", {
         fontSize: "12px",
-        color: "#12f7ff",
+        color: "#718096",
       })
       .setOrigin(0.5);
 
@@ -77,6 +77,29 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     console.log("BootScene: Assets loaded, transitioning to MenuScene");
+    
+    // Handle AudioContext initialization for modern browsers
+    if (this.sound && this.sound.context && this.sound.context.state === 'suspended') {
+      console.log("BootScene: Resuming suspended AudioContext");
+      
+      // Create a one-time click handler to resume audio
+      const resumeAudio = () => {
+        this.sound.context.resume().then(() => {
+          console.log("BootScene: AudioContext resumed successfully");
+        }).catch((error: any) => {
+          console.warn("BootScene: Failed to resume AudioContext:", error);
+        });
+        
+        // Remove the listener after first interaction
+        this.input.once('pointerdown', resumeAudio);
+        this.input.keyboard?.once('keydown', resumeAudio);
+      };
+      
+      // Set up the resume handler
+      this.input.once('pointerdown', resumeAudio);
+      this.input.keyboard?.once('keydown', resumeAudio);
+    }
+    
     this.time.delayedCall(200, () => transitionToMenu(this));
   }
 }

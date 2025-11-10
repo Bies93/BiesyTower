@@ -29,11 +29,6 @@ export class UIScene extends Phaser.Scene {
   private heightDisplayEl?: HTMLElement;
   private scoreDisplayEl?: HTMLElement;
   private scoreBurstContainer!: Phaser.GameObjects.Container;
-  private comboContainer!: Phaser.GameObjects.Container;
-  private comboText!: Phaser.GameObjects.Text;
-  private comboMultiplierText!: Phaser.GameObjects.Text;
-  private comboProgress!: Phaser.GameObjects.Rectangle;
-  private comboActive = false;
   private milestoneToast?: Phaser.GameObjects.Container;
 
   constructor() {
@@ -75,14 +70,12 @@ export class UIScene extends Phaser.Scene {
     
     // Create score burst effect
     this.createScoreBurstContainer();
-    this.createComboIndicator();
     
     // Listen to events from GameScene
     this.game.events.on("heightUpdate", this.onHeightUpdate, this);
     // this.game.events.on("heightProgress", this.onHeightProgress, this);
     this.game.events.on("scoreUpdate", this.onScoreUpdate, this);
     this.game.events.on("comboUpdate", this.onComboUpdate, this);
-    this.game.events.on("comboEnded", this.onComboEnded, this);
     this.game.events.on("heightMilestone", this.onHeightMilestone, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -90,7 +83,6 @@ export class UIScene extends Phaser.Scene {
       // this.game.events.off("heightProgress", this.onHeightProgress, this);
       this.game.events.off("scoreUpdate", this.onScoreUpdate, this);
       this.game.events.off("comboUpdate", this.onComboUpdate, this);
-      this.game.events.off("comboEnded", this.onComboEnded, this);
       this.game.events.off("heightMilestone", this.onHeightMilestone, this);
     });
   }
@@ -187,33 +179,6 @@ export class UIScene extends Phaser.Scene {
     this.scoreBurstContainer = this.add.container(0, 0).setDepth(80).setScrollFactor(0);
   }
 
-  private createComboIndicator(): void {
-    const { width } = this.scale;
-    this.comboContainer = this.add.container(width / 2, 118).setDepth(1.2);
-
-    const background = this.add
-      .rectangle(0, 0, 220, 54, 0x04122a, 0.95)
-      .setStrokeStyle(1, 0x58dfff, 0.6);
-    const progressTrack = this.add.rectangle(0, 14, 180, 8, 0xffffff, 0.15);
-    this.comboProgress = this.add.rectangle(-90, 14, 180, 8, 0x58dfff, 0.9).setOrigin(0, 0.5);
-    this.comboProgress.displayWidth = 0;
-
-    this.comboText = this.uiSystem.createGlowingText("COMBO X1", 0, -8, {
-      fontSize: "16px",
-      color: "#e9f3ff",
-    });
-    this.comboText.setOrigin(0.5);
-
-    this.comboMultiplierText = this.uiSystem.createGlowingText("1.0x", 0, 12, {
-      fontSize: "14px",
-      color: "#9af7ff",
-    });
-    this.comboMultiplierText.setOrigin(0.5);
-
-    this.comboContainer.add([background, progressTrack, this.comboProgress, this.comboText, this.comboMultiplierText]);
-    this.comboContainer.setVisible(false).setAlpha(0);
-  }
-
   private onHeightUpdate(height: number): void {
     const newHeight = Math.floor(height);
     if (newHeight === this.currentHeight) {
@@ -249,53 +214,100 @@ export class UIScene extends Phaser.Scene {
   }
 
   private onComboUpdate(payload: { count: number; multiplier: number; bonus: number; progress: number; passive?: boolean }): void {
-    if (payload.count <= 1) {
-      this.onComboEnded();
+    if (payload.passive || payload.count <= 1) {
       return;
     }
 
-    if (!this.comboActive) {
-      this.comboActive = true;
-      this.comboContainer.setVisible(true);
+    this.spawnComboPulse(payload);
+  }
+
+  private spawnComboPulse(payload: { count: number; multiplier: number; bonus: number }): void {
+    const indicatorX = this.scale.width - 88;
+    const indicatorY = 58;
+    const comboLabel = this.uiSystem.createGlowingText(
+      `COMBO x${payload.count}`,
+      indicatorX,
+      indicatorY,
+      {
+        fontSize: "18px",
+        color: "#ffe680",
+        stroke: "#0a1a33",
+        strokeThickness: 3,
+        shadowColor: "#fff",
+        shadowBlur: 12,
+      }
+    );
+    comboLabel.setOrigin(0.5).setScrollFactor(0).setDepth(90).setAlpha(0);
+
+    this.tweens.add({
+      targets: comboLabel,
+      alpha: 1,
+      y: indicatorY - 8,
+      duration: 260,
+      ease: "Sine.easeOut",
+    });
+    this.tweens.add({
+      targets: comboLabel,
+      y: indicatorY - 44,
+      alpha: 0,
+      duration: 760,
+      delay: 260,
+      ease: "Quad.easeIn",
+      onComplete: () => comboLabel.destroy(),
+    });
+
+    if (payload.bonus > 0) {
+      const bonusLabel = this.uiSystem.createGlowingText(
+        `+${payload.bonus}`,
+        indicatorX,
+        indicatorY + 18,
+        {
+          fontSize: "14px",
+          color: "#ffa45a",
+          stroke: "#0a1a33",
+          strokeThickness: 2,
+        }
+      );
+      bonusLabel.setOrigin(0.5).setScrollFactor(0).setDepth(90).setAlpha(0);
       this.tweens.add({
-        targets: this.comboContainer,
+        targets: bonusLabel,
         alpha: 1,
+        y: indicatorY + 2,
         duration: 200,
         ease: "Sine.easeOut",
       });
-    }
-
-    this.comboText.setText(`COMBO X${payload.count}`);
-    this.comboMultiplierText.setText(`${payload.multiplier.toFixed(2)}x`);
-    const progress = Phaser.Math.Clamp(payload.progress, 0, 1);
-    this.comboProgress.displayWidth = 180 * progress;
-
-    if (!payload.passive) {
       this.tweens.add({
-        targets: this.comboContainer,
-        scaleX: { from: 1, to: 1.03 },
-        scaleY: { from: 1, to: 1.03 },
-        duration: 160,
-        yoyo: true,
-        ease: "Quad.easeOut",
+        targets: bonusLabel,
+        alpha: 0,
+        y: indicatorY - 26,
+        duration: 640,
+        delay: 220,
+        ease: "Quad.easeIn",
+        onComplete: () => bonusLabel.destroy(),
       });
     }
-  }
 
-  private onComboEnded(): void {
-    if (!this.comboActive) {
-      return;
+    for (let i = 0; i < 6; i += 1) {
+      const angle = (i / 6) * Phaser.Math.PI2 + Phaser.Math.FloatBetween(-0.2, 0.2);
+      const radius = Phaser.Math.Between(28, 46);
+      const spark = this.add
+        .circle(indicatorX, indicatorY, 3, 0xfff3c1, 0.8)
+        .setOrigin(0.5)
+        .setDepth(88)
+        .setScrollFactor(0);
+      this.scoreBurstContainer.add(spark);
+
+      this.tweens.add({
+        targets: spark,
+        x: indicatorX + Math.cos(angle) * radius,
+        y: indicatorY + Math.sin(angle) * radius,
+        alpha: 0,
+        scale: 0.4,
+        duration: 520,
+        ease: "Quad.easeOut",
+        onComplete: () => spark.destroy(),
+      });
     }
-    this.comboActive = false;
-    this.comboContainer.setScale(1);
-    this.comboProgress.displayWidth = 0;
-    this.tweens.add({
-      targets: this.comboContainer,
-      alpha: 0,
-      duration: 220,
-      ease: "Sine.easeIn",
-      onComplete: () => this.comboContainer.setVisible(false),
-    });
   }
 
   private onHeightMilestone(payload: { height: number; bonus: number }): void {

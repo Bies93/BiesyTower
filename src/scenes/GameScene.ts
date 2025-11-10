@@ -30,6 +30,8 @@ export class GameScene extends Phaser.Scene {
   private lastLandingTimestamp = 0;
   private nextMilestone = 100;
   private milestoneStep = 100;
+  private cameraFollowOffsetStart = 0;
+  private cameraFollowOffsetEnd = 0;
 
   constructor() {
     super({ key: "GameScene" });
@@ -47,8 +49,9 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.physics.world.setBounds(0, -Infinity, width, Infinity);
 
-    // Start sehr nah am unteren Rand: Spieler sehr tief platzieren
-    const startPlayerY = height - 25;
+    // Starte knapp oberhalb des unteren Viewport-Randes, damit die Plattformen von unten beginnen
+    const bottomBuffer = Math.max(32, Math.round(height * 0.02)); // ~2-3 cm über dem Rand
+    const startPlayerY = height - bottomBuffer;
     this.player = createPlayerStub(this, width / 2, startPlayerY);
     this.startY = this.player.y;
 
@@ -71,16 +74,23 @@ export class GameScene extends Phaser.Scene {
     );
 
     // Kamera: Start an fixierter niedriger Position, dann sanft zum Spieler übergehen
+    const cameraOffsetStart = -Math.round(Math.max(180, height * 0.18));
+    const cameraOffsetEnd = -Math.round(Math.max(32, height * 0.04));
+    this.cameraFollowOffsetStart = cameraOffsetStart;
+    this.cameraFollowOffsetEnd = cameraOffsetEnd;
+    const startScrollY = Math.max(0, startPlayerY - height + Math.round(bottomBuffer * 0.6));
+
     const cam = this.cameras.main;
-    cam.setZoom(1); // Standardzoom beibehalten, Fokus auf Spielfläche
-    cam.setScroll(0, height - 400); // Start an fixierter niedriger Position
-    cam.setLerp(0.05, 0.05); // Sehr sanfte Nachführung für flüssigen Übergang
+    cam.setZoom(1); // Standardzoom behalten, Fokus auf Spielfläche
+    cam.setLerp(0.06, 0.06); // Grund-Lerp für sanftes Folgen
     cam.roundPixels = true;
     cam.setBackgroundColor(baseGameConfig.colors.background);
+    cam.setScroll(0, startScrollY);
+    cam.setFollowOffset(0, cameraOffsetStart);
     cam.fadeIn(250, 0, 0, 0);
-    
-    // Sofortiges Starten des Camera Follow mit sanfter Nachführung
-    cam.startFollow(this.player, false, 0.05, 0.05);
+
+    // Kamera startet unten und folgt mit sanfter Verzögerung
+    cam.startFollow(this.player, false, 0.06, 0.06);
 
     this.currentHeight = 0;
     this.game.events.emit("heightUpdate", this.currentHeight);
@@ -96,6 +106,8 @@ export class GameScene extends Phaser.Scene {
     this.nextMilestone = 100;
     this.milestoneStep = 100;
     this.game.events.on("playerLanded", this.handlePlayerLanding, this);
+    this.game.events.on("bonusPoints", this.handleBonusPoints, this);
+    this.game.events.on("playerDamage", this.handlePlayerDamage, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.isEnding = false;
       this.backgroundManager?.destroy();
@@ -216,13 +228,14 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
+    const cam = this.cameras.main;
     if (!this.player || !this.cursors) {
       return;
     }
 
     const progress = this.getHeightProgress();
-    this.backgroundManager?.update(this.cameras.main, progress);
+    this.backgroundManager?.update(cam, progress);
     this.game.events.emit("heightProgress", { progress });
     this.handleJumpLogic(delta);
 
@@ -237,18 +250,37 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.currentHeight = Math.max(0, this.startY - this.player.y);
-    this.platformManager.update(this.cameras.main);
+    this.platformManager.update(cam, time, delta);
     this.game.events.emit("heightUpdate", this.currentHeight);
     this.updateScoreFromHeight();
     this.handleComboDecay(delta);
     this.checkHeightMilestones();
 
     // Dynamische Kamera-Anpassung basierend auf Spielerhöhe
-    const cam = this.cameras.main;
-    const heightBasedLerp = Phaser.Math.Linear(0.05, 0.15, progress); // Langsamer bei niedriger Höhe, schneller bei höherer Höhe
-    cam.setLerp(heightBasedLerp, heightBasedLerp);
+    const ascendProgress = Phaser.Math.Clamp(
+      this.currentHeight / (this.scale.height * 0.65),
+      0,
+      1
+    );
+    const cameraEase = ascendProgress * ascendProgress;
+    const baseLerp = Phaser.Math.Linear(0.05, 0.22, cameraEase);
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const velocityLead = Phaser.Math.Clamp(body.velocity.y * 0.04, -60, 60);
+    const leadInfluence = Phaser.Math.Linear(1, 0.3, cameraEase);
+    const baseOffset = Phaser.Math.Linear(
+      this.cameraFollowOffsetStart,
+      this.cameraFollowOffsetEnd,
+      cameraEase
+    );
+    const offsetMin = Math.min(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) - 60;
+    const offsetMax = Math.max(this.cameraFollowOffsetStart, this.cameraFollowOffsetEnd) + 40;
+    cam.setLerp(baseLerp, baseLerp);
+    cam.setFollowOffset(
+      0,
+      Phaser.Math.Clamp(baseOffset + velocityLead * leadInfluence, offsetMin, offsetMax)
+    );
 
-    const deathY = this.cameras.main.scrollY + this.scale.height + baseGameConfig.rules.deathMargin;
+    const deathY = cam.scrollY + this.scale.height + baseGameConfig.rules.deathMargin;
     if (this.player.y > deathY) {
       this.handleGameOver();
     }
@@ -268,9 +300,23 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Handle existing boost platform behavior
     if (type === "boost") {
       this.triggerBoostPlatform(platform);
     }
+
+    // Handle new platform behaviors
+    this.platformManager.handlePlatformLanding(
+      { sprite: platform, y: platform.y, width: platform.displayWidth, type },
+      this.player
+    );
+
+    // Emit landing event for combo system
+    this.game.events.emit("playerLanded", {
+      x: this.player.x,
+      y: this.player.y,
+      velocity: this.player.body.velocity.y
+    });
   }
 
   private triggerBoostPlatform(platform: Phaser.Types.Physics.Arcade.ImageWithStaticBody): void {
@@ -512,7 +558,41 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => spark.destroy(),
       });
     }
+  }
 
-    this.cameras.main.flash(120, 255, 255, 255);
+  private handleBonusPoints(amount: number): void {
+    this.incrementScore(amount);
+    
+    // Visual feedback for bonus points
+    const bonusText = this.add.text(this.player.x, this.player.y - 50, `+${amount}`, {
+      fontSize: "24px",
+      color: "#ffd700",
+      fontStyle: "bold",
+      stroke: "#000000",
+      strokeThickness: 3
+    }).setScrollFactor(0).setDepth(100);
+    
+    this.tweens.add({
+      targets: bonusText,
+      y: bonusText.y - 50,
+      alpha: 0,
+      duration: 1000,
+      ease: "Quad.easeOut",
+      onComplete: () => bonusText.destroy()
+    });
+  }
+
+  private handlePlayerDamage(amount: number): void {
+    // Flash red tint
+    this.player.setTint(0xff0000);
+    this.time.delayedCall(200, () => {
+      this.player.clearTint();
+    });
+    
+    // Screen shake for damage feedback
+    this.cameras.main.shake(200, 0.01);
+    
+    // Could add health system here
+    console.log(`Player took ${amount} damage`);
   }
 }

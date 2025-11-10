@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import { PlatformTextureFactory } from "./PlatformTextureFactory";
 import { PlatformAnimator } from "./PlatformAnimator";
-import { PlatformType } from "./platformTypes";
+import { PlatformType, PlatformBehavior, PlatformEvent } from "./platformTypes";
+import { PlatformBehaviors } from "./PlatformBehaviors";
+import { PlatformDebugSystem } from "./PlatformDebugSystem";
 
 export interface Platform {
   sprite: Phaser.Types.Physics.Arcade.ImageWithStaticBody;
@@ -29,6 +31,15 @@ const PLATFORM_CONFIG: Record<PlatformType, PlatformVisualConfig> = {
   },
   conveyorRight: { widthMultiplier: 1.1, height: 24 },
   crumble: { widthMultiplier: 1, height: 22 },
+  // New platform types
+  magnetic: { widthMultiplier: 1.2, height: 24, alpha: 0.9, blendMode: Phaser.BlendModes.SCREEN },
+  spring: { widthMultiplier: 0.9, height: 28, alpha: 1.0 },
+  fragile: { widthMultiplier: 1.0, height: 20, alpha: 0.85 },
+  moving: { widthMultiplier: 1.3, height: 24, alpha: 0.95 },
+  disappearing: { widthMultiplier: 1.0, height: 22, alpha: 0.7 },
+  golden: { widthMultiplier: 1.1, height: 26, alpha: 1.0, blendMode: Phaser.BlendModes.ADD },
+  toxic: { widthMultiplier: 1.15, height: 24, alpha: 0.8 },
+  teleport: { widthMultiplier: 1.0, height: 24, alpha: 0.6, blendMode: Phaser.BlendModes.SCREEN },
 };
 
 type PlatformPhase = {
@@ -98,6 +109,7 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   private activePattern: { pattern: PlatformPattern; index: number } | null = null;
   private readonly textureFactory: PlatformTextureFactory;
   private readonly platformAnimator: PlatformAnimator;
+  private debugSystem: PlatformDebugSystem;
 
   constructor(scene: Phaser.Scene) {
     super();
@@ -105,6 +117,7 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.platformsGroup = this.scene.physics.add.staticGroup();
     this.textureFactory = new PlatformTextureFactory(scene);
     this.platformAnimator = new PlatformAnimator(scene);
+    this.debugSystem = new PlatformDebugSystem(scene, this);
   }
 
   public initialize(startY: number): void {
@@ -117,13 +130,38 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     this.generatePlatformsUpTo(this.lastGeneratedY - 2000);
   }
 
-  public update(camera: Phaser.Cameras.Scene2D.Camera): void {
+  public update(camera: Phaser.Cameras.Scene2D.Camera, time: number, delta: number): void {
+    // Ensure camera is valid
+    if (!camera || !camera.scrollY) {
+      console.warn("Invalid camera in PlatformManager.update");
+      return;
+    }
+
     const cameraBottom = camera.scrollY + this.scene.scale.height;
     const targetGenerationY = cameraBottom - this.generationOffset;
+    
+    // Enhanced safety checks
+    if (isNaN(targetGenerationY) || !isFinite(targetGenerationY)) {
+      console.warn("Invalid targetGenerationY, skipping update");
+      return;
+    }
+    
+    // Generate platforms with safety margin
     if (this.lastGeneratedY > targetGenerationY) {
       this.generatePlatformsUpTo(targetGenerationY);
     }
-    this.cleanupOldPlatforms(cameraBottom + 500);
+    
+    // Cleanup with larger safety margin
+    this.cleanupOldPlatforms(cameraBottom + 1000);
+    
+    // Emergency check for platform gaps
+    this.checkForPlatformGaps(cameraBottom);
+    
+    // Update platform behaviors
+    this.updatePlatformBehaviors(16); // Assuming 60 FPS, ~16ms per frame
+    
+    // Update debug system
+    this.debugSystem.update(time, delta);
   }
 
   public createBasePlatform(
@@ -159,14 +197,53 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
   }
 
   private generatePlatformsUpTo(targetY: number): void {
+    // Safety bounds to prevent infinite generation
+    const minTargetY = Math.max(targetY, -50000); // Upper bound for safety
     let currentY = this.lastGeneratedY;
+    
+    // Emergency generation check
+    if (this.lastGeneratedY - minTargetY > 5000) {
+      console.warn("Emergency platform generation triggered");
+      this.emergencyPlatformGeneration(minTargetY);
+      return;
+    }
 
-    while (currentY > targetY) {
+    // Loop protection
+    let loopCounter = 0;
+    const maxLoops = 1000;
+    let lastY = currentY;
+
+    while (currentY > minTargetY && loopCounter < maxLoops) {
       const height = this.startY - currentY;
       const platformData = this.getPlatformDataForHeight(height);
+      
+      // Validate platform data
+      if (!this.isValidPlatformData(platformData)) {
+        console.warn("Invalid platform data detected, using fallback");
+        platformData.x = this.scene.scale.width / 2;
+        platformData.width = this.scene.scale.width * 0.6;
+        platformData.spacing = 100;
+        platformData.type = "normal";
+      }
+      
       const platform = this.createPlatform(platformData.x, currentY, platformData.width, platformData.type);
       this.platformList.push(platform);
+      lastY = currentY;
       currentY -= platformData.spacing;
+      loopCounter++;
+    }
+
+    // Check for infinite loop
+    if (loopCounter >= maxLoops) {
+      console.error("Platform generation loop protection triggered");
+      this.emergencyPlatformGeneration(minTargetY);
+      return;
+    }
+
+    // Check for stuck generation
+    if (Math.abs(lastY - currentY) < 1) {
+      console.warn("Platform generation appears stuck, forcing progress");
+      currentY -= 100;
     }
 
     this.lastGeneratedY = currentY;
@@ -317,6 +394,15 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
       boost: progress > 0.3 ? Phaser.Math.Linear(0.1, 1.3, progress) : 0,
       conveyorRight: progress > 0.55 ? Phaser.Math.Linear(0.05, 1, progress) : 0,
       crumble: progress > 0.65 ? Phaser.Math.Linear(0.05, 0.9, progress) : 0,
+      // New platform types with progressive weights
+      magnetic: progress > 0.25 ? Phaser.Math.Linear(0.1, 0.8, progress) : 0,
+      spring: progress > 0.35 ? Phaser.Math.Linear(0.08, 0.6, progress) : 0,
+      fragile: progress > 0.4 ? Phaser.Math.Linear(0.12, 1.0, progress) : 0,
+      moving: progress > 0.45 ? Phaser.Math.Linear(0.05, 0.7, progress) : 0,
+      disappearing: progress > 0.5 ? Phaser.Math.Linear(0.08, 0.5, progress) : 0,
+      golden: progress > 0.6 ? Phaser.Math.Linear(0.02, 0.3, progress) : 0,
+      toxic: progress > 0.7 ? Phaser.Math.Linear(0.15, 0.8, progress) : 0,
+      teleport: progress > 0.8 ? Phaser.Math.Linear(0.03, 0.4, progress) : 0,
     };
 
     this.applyWeightOverrides(baseWeights, this.getPhaseForProgress(progress).weights);
@@ -450,6 +536,9 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     // Add enhanced animations using PlatformAnimator
     this.addPlatformAnimations(platform, type, actualWidth, config.height);
 
+    // Add behavior system for new platform types
+    this.addPlatformBehavior({ sprite: platform, y, width, type }, type);
+
     return {
       sprite: platform,
       y,
@@ -521,6 +610,52 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     }
   }
 
+  // Emergency generation method for fail-safe scenarios
+  private emergencyPlatformGeneration(targetY: number): void {
+    console.log("Emergency platform generation activated");
+    let currentY = this.lastGeneratedY;
+    const emergencySpacing = 120;
+    const emergencyWidth = this.scene.scale.width * 0.6;
+    
+    while (currentY > targetY) {
+      const x = this.scene.scale.width / 2 + (Math.random() - 0.5) * 200;
+      const platform = this.createPlatform(x, currentY, emergencyWidth, "normal");
+      this.platformList.push(platform);
+      currentY -= emergencySpacing;
+    }
+    
+    this.lastGeneratedY = currentY;
+  }
+
+  // Validate platform data to prevent invalid configurations
+  private isValidPlatformData(platformData: any): boolean {
+    return platformData && 
+           typeof platformData.x === 'number' && !isNaN(platformData.x) &&
+           typeof platformData.width === 'number' && !isNaN(platformData.width) && platformData.width > 0 &&
+           typeof platformData.spacing === 'number' && !isNaN(platformData.spacing) && platformData.spacing > 0 &&
+           typeof platformData.type === 'string' && platformData.type.length > 0;
+  }
+
+  // Check for dangerous gaps in platform generation
+  private checkForPlatformGaps(cameraBottom: number): void {
+    const checkRange = 1000; // Check 1000 units ahead
+    const platformsInRange = this.platformList.filter(p => 
+      p.y > cameraBottom - checkRange && p.y < cameraBottom + checkRange
+    );
+    
+    // If no platforms in range, generate emergency platforms
+    if (platformsInRange.length === 0) {
+      console.warn("No platforms detected in range, generating emergency platforms");
+      const emergencyY = cameraBottom - 200;
+      for (let i = 0; i < 5; i++) {
+        const x = this.scene.scale.width / 2 + (Math.random() - 0.5) * 300;
+        const y = emergencyY - (i * 150);
+        const platform = this.createPlatform(x, y, this.scene.scale.width * 0.7, "normal");
+        this.platformList.push(platform);
+      }
+    }
+  }
+
   private addPlatformAnimations(
     platform: Phaser.Types.Physics.Arcade.ImageWithStaticBody,
     type: PlatformType,
@@ -541,6 +676,49 @@ export class PlatformManager extends Phaser.Events.EventEmitter {
     });
   }
 
+  // Add behavior system for new platform types
+  private addPlatformBehavior(platform: Platform, type: PlatformType): void {
+    const behavior = PlatformBehaviors.getBehavior(type);
+    if (!behavior) return;
+
+    // Store behavior reference for later use
+    platform.sprite.setData("platformBehavior", behavior);
+
+    // Set up collision callbacks for behavior
+    if (behavior.onLand) {
+      platform.sprite.setData("onLandCallback", behavior.onLand);
+    }
+
+    if (behavior.onDestroy) {
+      platform.sprite.setData("onDestroyCallback", behavior.onDestroy);
+    }
+  }
+
+  // Handle platform behavior updates
+  public updatePlatformBehaviors(delta: number): void {
+    this.platformList.forEach(platform => {
+      const behavior = platform.sprite.getData("platformBehavior");
+      if (behavior && behavior.onUpdate) {
+        behavior.onUpdate(platform.sprite, delta);
+      }
+    });
+  }
+
+  // Handle platform landing events
+  public handlePlatformLanding(platform: Platform, player: any): void {
+    const onLandCallback = platform.sprite.getData("onLandCallback");
+    if (onLandCallback) {
+      onLandCallback(platform.sprite, player);
+    }
+  }
+
+  // Remove platform from list
+  public removePlatform(platform: any): void {
+    const index = this.platformList.findIndex(p => p.sprite === platform);
+    if (index !== -1) {
+      this.platformList.splice(index, 1);
+    }
+  }
   private cleanupOldPlatforms(maxY: number): void {
     const keepPlatforms: Platform[] = [];
     for (const platform of this.platformList) {

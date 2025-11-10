@@ -1,25 +1,40 @@
-/* Enhanced Styling für die Einbettung des Canvas.
- * Modernes Neon-Theme mit Glassmorphism-Effekten.
+/* Industrielle Styling für die Einbettung des Canvas.
+ * Modernes, elegantes Design mit Material-Texturen und subtilen Effekten.
+ * Passend zur Dystopie-Ästhetik des Spiels.
  */
 
 :root {
-  --biesy-bg-top: #0b0b1f;
-  --biesy-bg-bottom: #020010;
-  --biesy-accent: #12f7ff;
-  --biesy-soft: #ff4bf2;
-  --biesy-ice: #ffe6ff;
-  --biesy-glass-bg: rgba(8, 6, 24, 0.92);
-  --biesy-glass-border: rgba(18, 247, 255, 0.24);
-  --biesy-radius-lg: 18px;
-  --biesy-radius-md: 12px;
-  --biesy-radius-sm: 8px;
-  --biesy-shadow-strong: 0 24px 80px rgba(0, 0, 0, 0.55);
-  --biesy-shadow-glow: 0 0 40px rgba(255, 75, 242, 0.22);
-  --biesy-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --biesy-text-primary: #e9f3ff;
-  --biesy-text-secondary: #12f7ff;
-  --biesy-glow-intense: 0 0 60px rgba(123, 45, 255, 0.5);
-  --biesy-glow-soft: 0 0 20px rgba(18, 247, 255, 0.35);
+  /* Industrielle Hauptfarben */
+  --industrial-steel: #4a5568;
+  --industrial-steel-dark: #2d3748;
+  --industrial-steel-light: #718096;
+  --industrial-rust: #8b4513;
+  --industrial-rust-dark: #654321;
+  --industrial-rust-light: #cd853f;
+  --industrial-iron: #1a202c;
+  --industrial-concrete: #2d3748;
+  
+  /* Akzentfarben */
+  --industrial-accent-red: #8b0000;
+  --industrial-accent-black: #0f0f0f;
+  --industrial-accent-white: #f0f4f8;
+  --industrial-accent-blue: #718096;
+  
+  /* Material-Effekte */
+  --industrial-shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --industrial-shadow-hard: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --industrial-shadow-inset: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  --industrial-highlight: rgba(240, 244, 248, 0.1);
+  
+  /* Texturen und Oberflächen */
+  --industrial-texture-intensity: 0.7;
+  --industrial-wear-level: 0.3;
+  --industrial-corner-damage: 0.2;
+  
+  /* Animationen (verlangsamt) */
+  --industrial-transition-slow: 0.4s ease-out;
+  --industrial-transition-medium: 0.3s ease-out;
+  --industrial-transition-fast: 0.2s ease-out;
 }
 
 *,
@@ -34,15 +49,21 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at center top, var(--biesy-bg-top) 0%, var(--biesy-bg-bottom) 100%);
+  background: 
+    radial-gradient(ellipse at center, var(--industrial-iron) 0%, #0a0e1a 100%),
+    linear-gradient(180deg, 
+      rgba(26, 32, 44, 0.9) 0%, 
+      rgba(15, 15, 15, 0.95) 100%
+    );
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
-  color: var(--biesy-text-primary);
+  color: var(--industrial-accent-white);
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
 }
 
+/* Industrieller Nebel-Effekt */
 body::before {
   content: '';
   position: fixed;
@@ -51,11 +72,23 @@ body::before {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 20% 30%, rgba(18, 247, 255, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(255, 75, 242, 0.05) 0%, transparent 55%),
-    radial-gradient(circle at 40% 80%, rgba(123, 45, 255, 0.04) 0%, transparent 55%);
+    radial-gradient(circle at 20% 30%, rgba(74, 85, 104, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 80% 70%, rgba(139, 69, 19, 0.06) 0%, transparent 65%),
+    radial-gradient(circle at 40% 80%, rgba(26, 32, 44, 0.04) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
+  animation: industrialFog 12s ease-in-out infinite;
+}
+
+@keyframes industrialFog {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(0, 0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(-10px, 5px);
+  }
 }
 
 #app {
@@ -67,50 +100,102 @@ body::before {
   position: relative;
 }
 
-#app::before {
+/* Industrieller Rahmen mit Material-Effekten */
+.game-wrapper {
+  margin: auto;
+  width: min(480px, 100vw);
+  height: min(800px, 100vh);
+  border-radius: 12px;
+  padding: 8px 10px 12px;
+  background: 
+    linear-gradient(145deg, 
+      rgba(74, 85, 104, 0.4) 0%, 
+      rgba(26, 32, 44, 0.8) 100%
+    );
+  box-shadow:
+    var(--industrial-shadow-hard),
+    inset 0 1px 0 rgba(240, 244, 248, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border: 1px solid rgba(139, 69, 19, 0.3);
+}
+
+/* Rost-Effekt an den Kanten */
+.game-wrapper::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 200%;
-  height: 200%;
-  background:
-    radial-gradient(circle, rgba(18, 247, 255, 0.05) 0%, transparent 70%);
+  inset: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
   pointer-events: none;
-  animation: breathe 8s ease-in-out infinite;
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 90% 90%, rgba(139, 69, 19, 0.1) 0%, transparent 50%);
 }
 
-@keyframes breathe {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.1);
-    opacity: 0.8;
-  }
-}
-
-/* Enhanced Canvas Styling */
+/* Enhanced Canvas Styling mit industrieller Optik */
 canvas {
-  border-radius: var(--biesy-radius-lg);
+  border-radius: 8px;
   box-shadow:
-    var(--biesy-shadow-strong),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    var(--industrial-shadow-hard),
+    inset 0 1px 0 rgba(240, 244, 248, 0.05);
   background: linear-gradient(145deg,
-    rgba(15, 26, 46, 0.95) 0%,
-    rgba(2, 6, 16, 0.95) 100%);
+    rgba(45, 55, 72, 0.95) 0%,
+    rgba(26, 32, 44, 0.95) 100%);
 }
 
-/* Loading Screen Enhancements */
+#phaser-container {
+  flex: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(74, 85, 104, 0.15), transparent 50%),
+    linear-gradient(180deg, 
+      rgba(26, 32, 44, 0.95) 0%, 
+      rgba(15, 15, 15, 0.98) 100%
+    );
+  position: relative;
+  border: 1px solid rgba(74, 85, 104, 0.3);
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.6),
+    var(--industrial-shadow-inset);
+}
+
+/* Staubige Ecken */
+#phaser-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(139, 69, 19, 0.1) 0%, transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(139, 69, 19, 0.1) 0%, transparent 30%);
+  pointer-events: none;
+}
+
+#phaser-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 0 16px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(74, 85, 104, 0.1);
+}
+
+/* Loading Screen mit industriellem Design */
 .loading-container {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, var(--biesy-bg-top), var(--biesy-bg-bottom));
+  background: 
+    linear-gradient(180deg, 
+      var(--industrial-iron) 0%, 
+      var(--industrial-accent-black) 100%
+    );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,22 +204,33 @@ canvas {
 }
 
 .loading-text {
-  color: var(--biesy-accent);
-  font-size: 1.2rem;
-  font-weight: 600;
-  text-shadow: var(--biesy-glow-soft);
-  animation: pulse 2s ease-in-out infinite;
+  color: var(--industrial-accent-white);
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  animation: industrialPulse 3s ease-in-out infinite;
+  letter-spacing: 0.1em;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+@keyframes industrialPulse {
+  0%, 100% { 
+    opacity: 0.7; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.02);
+  }
 }
 
 /* High DPI Display Optimizations */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  #app::before {
+  .game-wrapper::before {
     background-size: 200% 200%;
+  }
+  
+  #phaser-container::before {
+    background-size: 150% 150%;
   }
 }
 
@@ -146,14 +242,23 @@ canvas {
     transition-duration: 0.01ms !important;
   }
   
-  #app::before {
+  body::before {
     animation: none;
   }
 }
 
-/* Mobile Optimizations */
+/* Mobile Optimizations mit industriellem Fokus */
 @media (max-width: 768px) {
-  canvas {
+  .game-wrapper {
     border-radius: 0;
+    padding: 4px 6px 8px;
+  }
+  
+  #phaser-container {
+    border-radius: 4px;
+  }
+  
+  #phaser-container canvas {
+    border-radius: 2px;
   }
 }
